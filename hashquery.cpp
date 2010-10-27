@@ -14,7 +14,7 @@ HashQuery::HashQuery()
     db.setDatabaseName(dbPath);
 
     if (!db.open()) {
-        QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Невозможно открыть базу данных хэшей";
+        QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Cannot open hash DB";
         QApplication::exit(1);
     }
 }
@@ -26,7 +26,7 @@ HashQuery::~HashQuery() {
 
 void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType) {
     if (!QFile::exists(filePath)) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Попытка добавить хэш несуществующего файла в БД:" <<
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Attempt to add hash for non-existing file:" <<
                                                                 filePath;
         return;
     }
@@ -47,8 +47,8 @@ void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType)
     }
     
     if (!ok) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Невозможно добавить данные о файле" << filePath <<
-                                                                "хэш:" << fileHash << ":" << db.lastError().text();
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath <<
+                                                                "hash:" << fileHash << ":" << db.lastError().text();
     }
 }
 
@@ -68,11 +68,11 @@ QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileT
 
     if (query.next()) {
         filePath = query.value(0).toString();
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Путь для файла с хэшем:" << filePath << "; тип:" <<
-                                                              fileType << "; хэш:" << fileHash;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Path for file:" << filePath << "; type:" <<
+                                                              fileType << "; hash:" << fileHash;
     } else {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Невозможно получить информацию по хэшу. Тип файла:" << 
-                                                               fileType << "; путь:" << fileHash;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to get file path for hash. File type:" << 
+                                                               fileType << ". File path:" << fileHash;
     }
     
     return filePath;
@@ -84,7 +84,7 @@ QString HashQuery::getFileHash(const QString &filePath) {
     QByteArray buffer;
     
     if (!hashFile.open(QIODevice::ReadOnly)) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Невозможно открыть файл для подсчёта хэша:" << filePath;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to open file for hash calculating:" << filePath;
         return QString();
     }
     

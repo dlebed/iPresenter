@@ -47,7 +47,7 @@ void ImageViewController::testLoad() {
 void ImageViewController::nextImage() {
     if (currentImageElement.isNull()) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ <<
-                                                               "Нет тэгов изображений 'image' в блоке изображений.";
+                                                               "There is no 'image' tags in images block.";
         return;
     }
     
@@ -62,7 +62,7 @@ void ImageViewController::nextImage() {
         
         if (currentImageElement.isNull()) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
-                                                                   "Нет больше тэгов изображений 'image' в блоке изображений.";
+                                                                   "There is no more 'image' tags in images block.";
             emit imageBlockEnded();
             return;
         }
@@ -82,13 +82,13 @@ void ImageViewController::showImageBlock(const QDomDocument &blockDocument) {
     
     if (rootElement.isNull() || rootElement.tagName() != "image_block") {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << 
-                                                               "Корневой XML-тэг не равен 'image_block':" << rootElement.tagName();
+                                                               "Thr root XML tag is not an 'image_block':" << rootElement.tagName();
         return;
     }
     
     if (imageTimer.isActive()) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
-                                                               "Попытка загрузки нового блока изображений. Останавливаем старый показ.";
+                                                               "Attempt to load new images block. Stopping the old image block presentation.";
         imageTimer.stop();
         emit imageBlockEnded();
     }
