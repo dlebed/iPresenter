@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/status">
+        <file alias="image_missing">icons/image-missing.png</file>
+        <file alias="image_loading">icons/image-loading.png</file>
+    </qresource>
+</RCC>
