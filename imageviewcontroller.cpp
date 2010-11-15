@@ -63,6 +63,7 @@ void ImageViewController::nextImage() {
         if (currentImageElement.isNull()) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
                                                                    "There is no more 'image' tags in images block.";
+            imageView->hide();
             emit imageBlockEnded();
             return;
         }
