@@ -13,7 +13,7 @@ ImageView::ImageView(QWidget *parent) :
        
     setStyleSheet(settings.value("ui/image_presenter/stylesheet", "background-color: rgb(0, 0, 0); border: 0px;").toString());
     setCursor((Qt::CursorShape) settings.value("ui/image_presenter/cursor", Qt::BlankCursor).toInt());
-    setWindowTitle("ImagePresenter");
+    setWindowTitle("iPresenter");
     
     graphicsScene = new QGraphicsScene(this);
     setScene(graphicsScene);
