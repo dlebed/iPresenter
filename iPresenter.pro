@@ -16,12 +16,15 @@ TEMPLATE = app
 SOURCES += main.cpp \
     imageview.cpp \
     imageviewcontroller.cpp \
-    hashquery.cpp
+    hashquery.cpp \
+    movies/mplayermovieplayer.cpp
 
 HEADERS += \
     imageview.h \
     imageviewcontroller.h \
-    hashquery.h
+    hashquery.h \
+    movies/imoviemplayer.h \
+    movies/mplayermovieplayer.h
 
 RESOURCES += \
     icons.qrc
