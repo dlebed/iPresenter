@@ -18,6 +18,9 @@ public:
     IPixmapCache(quint32 maxNumOfObjects = MAX_PIXMAP_ITEM_CACHE) {};
     virtual ~IPixmapCache() {}; 
 
+    virtual void setMaxItemCount(quint32 maxItemCount) = 0;
+    virtual quint32 getMaxItemCount() = 0;
+
     virtual QPixmap pixmapLookup(const QString &key) = 0;
     virtual quint8 pixmapAdd(const QPixmap &pixmap, const QString &key) = 0;
     virtual quint8 pixmapRemove(const QString &key) = 0;

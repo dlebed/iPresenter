@@ -18,6 +18,9 @@ class MemPixmapCache : public IPixmapCache {
 public:
     MemPixmapCache(quint32 maxNumOfObjects = MEM_PIXMAP_CACHE_MAX_ITEM);
     
+    virtual void setMaxItemCount(quint32 maxItemCount) { this->maxItemCount = maxItemCount; }
+    virtual quint32 getMaxItemCount() { return maxItemCount; }
+
     virtual QPixmap pixmapLookup(const QString &key);
     virtual quint8 pixmapAdd(const QPixmap &pixmap, const QString &key);
     virtual quint8 pixmapRemove(const QString &key);
