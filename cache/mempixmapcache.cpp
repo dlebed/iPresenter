@@ -13,6 +13,7 @@ MemPixmapCache::MemPixmapCache(quint32 maxNumOfObjects) :
 QPixmap MemPixmapCache::pixmapLookup(const QString &key) {
     if (!key.isEmpty() && pixmapHash.contains(key)) {
         pixmapHash[key].lookupCount++;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Pixmap found for key:" << key;
         return pixmapHash.value(key).pixmap;
     }
     
