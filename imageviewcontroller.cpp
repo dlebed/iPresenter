@@ -31,7 +31,7 @@ ImageViewController::~ImageViewController() {
 void ImageViewController::testLoad() {
     // Test
     QDomDocument doc;
-    QFile file("test/script.xml");
+    QFile file("images/script.xml");
     
     if (!file.open(QIODevice::ReadOnly))
         return;
@@ -66,6 +66,7 @@ void ImageViewController::nextImage() {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
                                                                    "There is no more 'image' tags in images block.";
             imageView->hide();
+            imageView->clear();
             emit imageBlockEnded();
             return;
         }
