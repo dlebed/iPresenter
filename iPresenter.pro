@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     hashquery.cpp \
     movies/mplayermovieplayer.cpp \
     hash/md5hashcalculator.cpp \
-    hash/hashcalculatorfactory.cpp
+    hash/hashcalculatorfactory.cpp \
+    cache/mempixmapcache.cpp
 
 HEADERS += \
     imageview.h \
@@ -30,7 +31,9 @@ HEADERS += \
     ihashquery.h \
     hash/ihashcalculator.h \
     hash/md5hashcalculator.h \
-    hash/hashcalculatorfactory.h
+    hash/hashcalculatorfactory.h \
+    cache/ipixmapcache.h \
+    cache/mempixmapcache.h
 
 RESOURCES += \
     icons.qrc
