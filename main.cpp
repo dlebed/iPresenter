@@ -16,6 +16,8 @@ extern "C" {
 
 #include "imageview.h"
 #include "imageviewcontroller.h"
+#include "movies/imoviemplayer.h"
+#include "movies/mplayermovieplayer.h"
 
 ImageView * imageView = NULL;
 
@@ -47,10 +49,15 @@ int main(int argc, char *argv[])
     
     Q_ASSERT(imageView != NULL);
     signal(SIGINT, sigint_handler);
-    
+    /*
     ImageViewController ivController(imageView);
     
     imageView->showFullScreen();
+    */
+    IMoviePlayer * moviePlayer = new MPlayerMoviePlayer();
+    
+    moviePlayer->play("/home/dimaz/movies/Desperate.Housewives.S07E02.rus.LostFilm.TV.avi");
+    
     
     return a.exec();
 }

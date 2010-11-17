@@ -17,14 +17,20 @@ SOURCES += main.cpp \
     imageview.cpp \
     imageviewcontroller.cpp \
     hashquery.cpp \
-    movies/mplayermovieplayer.cpp
+    movies/mplayermovieplayer.cpp \
+    hash/md5hashcalculator.cpp \
+    hash/hashcalculatorfactory.cpp
 
 HEADERS += \
     imageview.h \
     imageviewcontroller.h \
     hashquery.h \
     movies/imoviemplayer.h \
-    movies/mplayermovieplayer.h
+    movies/mplayermovieplayer.h \
+    ihashquery.h \
+    hash/ihashcalculator.h \
+    hash/md5hashcalculator.h \
+    hash/hashcalculatorfactory.h
 
 RESOURCES += \
     icons.qrc
@@ -34,3 +40,6 @@ RESOURCES += \
 INCLUDEPATH += ./qlogger
 QMAKE_LIBDIR += ./qlogger
 LIBS += -lqlogger
+
+
+QMAKE_CXXFLAGS += -Wno-unused-parameter

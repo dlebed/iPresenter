@@ -6,7 +6,10 @@
 
 #include <qlogger.h>
 
-HashQuery::HashQuery()
+#include "hash/hashcalculatorfactory.h"
+
+HashQuery::HashQuery(const QString &hashName) :
+    hashCalculator(NULL)
 {
     QString dbPath = settings.value("hash/db_path", "/etc/ads/hash.sqlite").toString();
     
@@ -15,6 +18,14 @@ HashQuery::HashQuery()
 
     if (!db.open()) {
         QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Cannot open hash DB";
+        QApplication::exit(1);
+    }
+    
+    hashCalculator = HashCalculatorFactory::hashCalculatorInstance(hashName);
+    Q_ASSERT(hashCalculator != NULL);
+    
+    if (hashCalculator == NULL) {
+        QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Cannot create IHashCalculator instance";
         QApplication::exit(1);
     }
 }
@@ -33,22 +44,22 @@ void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType)
     
     QSqlQuery query(db);
     bool ok = false;
-    QString fileHash = getFileHash(filePath);
+    Q_ASSERT(hashCalculator != NULL);
+    QString fileHash = hashCalculator->getFileHash(filePath);
     
     if (!fileHash.isEmpty()) {        
-        switch (fileType) {
-        case FILE_TYPE_IMAGE:
-            ok = query.exec("INSERT INTO images (hash, filepath) VALUES ('" + fileHash + "', '" + filePath + "');");
-            break;
-        case FILE_TYPE_MOVIE:
-            ok = query.exec("INSERT INTO movies (hash, filepath) VALUES ('" + fileHash + "', '" + filePath + "');");
-            break;
+        ok = query.exec("INSERT INTO " + fileTypeStr(fileType) + " (hash, filepath) VALUES ('" + fileHash + "', '" + filePath + "');");
+        
+        if (!ok) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath << "; type:" <<
+                                                                    fileTypeStr(fileType) <<
+                                                                    "; hash:" << fileHash << ":" << db.lastError().text();
         }
-    }
-    
-    if (!ok) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath <<
-                                                                "hash:" << fileHash << ":" << db.lastError().text();
+        
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath << "; type:" <<
+                                                                fileTypeStr(fileType) <<
+                                                                "; file hash is empty";
     }
 }
 
@@ -57,41 +68,29 @@ QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileT
     
     QSqlQuery query;
     
-    switch (fileType) {
-    case FILE_TYPE_IMAGE:
-        query = db.exec("SELECT filepath FROM images WHERE hash = '" + fileHash.toLower() + "'");
-        break;
-    case FILE_TYPE_MOVIE:
-        query = db.exec("SELECT filepath FROM movies WHERE hash = '" + fileHash.toLower() + "'");
-        break;
-    }
-
+    query = db.exec("SELECT filepath FROM " + fileTypeStr(fileType) + " WHERE hash = '" + fileHash.toLower() + "'");
+    
     if (query.next()) {
         filePath = query.value(0).toString();
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Path for file:" << filePath << "; type:" <<
-                                                              fileType << "; hash:" << fileHash;
+                                                              fileTypeStr(fileType) << "; hash:" << fileHash;
     } else {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to get file path for hash. File type:" << 
-                                                               fileType << ". File path:" << fileHash;
+                                                               fileTypeStr(fileType) << ". File path:" << fileHash;
     }
     
     return filePath;
 }
 
-QString HashQuery::getFileHash(const QString &filePath) {
-    QCryptographicHash hash(QCryptographicHash::Md5);
-    QFile hashFile(filePath);
-    QByteArray buffer;
-    
-    if (!hashFile.open(QIODevice::ReadOnly)) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to open file for hash calculating:" << filePath;
-        return QString();
+QString HashQuery::fileTypeStr(FILE_TYPE type) {
+    switch (type) {
+    case FILE_TYPE_IMAGE:
+        return "images";
+    case FILE_TYPE_MOVIE:
+        return "movies";
+    case FILE_TYPE_BLOCK:
+        return "blocks";
     }
     
-    while (!hashFile.atEnd()) {
-        buffer = hashFile.readLine(HASH_BUFFER_SIZE);
-        hash.addData(buffer);
-    }
-    
-    return hash.result().toHex().toLower();
+    return QString();
 }
