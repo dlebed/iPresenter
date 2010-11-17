@@ -62,6 +62,15 @@ void MPlayerMoviePlayer::pause() {
     }
 }
 
+void MPlayerMoviePlayer::resume() {
+    if (state == IMoviePlayer::PLAYER_STATE_PAUSED) {
+        state = IMoviePlayer::PLAYER_STATE_PLAYING;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Resuming MPlayer movie:" << currentMovieFilePath;
+        playerProcess.write("p");
+        emit moviePlayResumed(currentMovieFilePath);
+    }
+}
+
 void MPlayerMoviePlayer::stop() {
     state = IMoviePlayer::PLAYER_STATE_IDLE;
     

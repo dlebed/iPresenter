@@ -32,6 +32,7 @@ public slots:
     
     virtual void play(const QString &filename) = 0;
     virtual void pause() = 0;
+    virtual void resume() = 0;
     virtual void stop() = 0;
     virtual void sendCmd(quint8 cmd, quint8 value) = 0;
     
@@ -40,6 +41,7 @@ signals:
     void moviePlayStarted(QString filename);
     void moviePlayFinished(QString filename);
     void moviePlayPaused(QString filename);
+    void moviePlayResumed(QString filename);
     
     
 };

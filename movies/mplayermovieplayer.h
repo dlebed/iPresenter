@@ -20,6 +20,7 @@ public:
 public slots:
     virtual void play(const QString &filename);
     virtual void pause();
+    virtual void resume();
     virtual void stop();
     virtual void sendCmd(quint8 cmd, quint8 value);
     
@@ -27,6 +28,7 @@ signals:
     void moviePlayStarted(QString filename);
     void moviePlayFinished(QString filename);
     void moviePlayPaused(QString filename);
+    void moviePlayResumed(QString filename);
     
 protected slots:
     void playerFinishedHandler(int exitCode, QProcess::ExitStatus exitStatus);
