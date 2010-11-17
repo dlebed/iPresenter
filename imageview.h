@@ -9,6 +9,8 @@
 #include <QList>
 #include <QMutex>
 
+#include "cache/ipixmapcache.h"
+
 #define TIMELINE_FRAMES 20
 
 class ImageView : public QGraphicsView
@@ -21,10 +23,7 @@ public:
 signals:
 
 public slots:
-    void cacheImage(const QPixmap &pixmap);
-    void showCachedImage();
-    
-    void showImage(const QPixmap &pixmap);
+    void showImage(const QString &pixmapFilePath, const QString &imageHash);
     void clear();
     
 protected:
@@ -42,15 +41,13 @@ private:
     QSettings settings;
     QGraphicsScene *graphicsScene;
     
-
-    QGraphicsPixmapItem * cachedPixmapItem;
-    QMutex cachedPixmapMutex;
-    
     QGraphicsPixmapItem * currentPixmapItem;
     QGraphicsPixmapItem * prevPixmapItem;
     
     QTimeLine imageChangeTimeLine;
     
+    IPixmapCache *pixmapCache;
+
 };
 
 #endif // IMAGEVIEW_H

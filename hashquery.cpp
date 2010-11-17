@@ -19,6 +19,8 @@ HashQuery::HashQuery(const QString &hashName) :
     if (!db.open()) {
         QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Cannot open hash DB";
         QApplication::exit(1);
+    } else {
+        QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_INFO) << __FUNCTION__ << "Database '" << dbPath << "' successfully opened";
     }
     
     hashCalculator = HashCalculatorFactory::hashCalculatorInstance(hashName);
@@ -31,7 +33,10 @@ HashQuery::HashQuery(const QString &hashName) :
 }
 
 HashQuery::~HashQuery() {
-    
+    if (hashCalculator != NULL) {
+        delete hashCalculator;
+        hashCalculator = NULL;
+    }
 }
 
 
@@ -76,7 +81,7 @@ QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileT
                                                               fileTypeStr(fileType) << "; hash:" << fileHash;
     } else {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to get file path for hash. File type:" << 
-                                                               fileTypeStr(fileType) << ". File path:" << fileHash;
+                                                               fileTypeStr(fileType) << ". File hash:" << fileHash;
     }
     
     return filePath;

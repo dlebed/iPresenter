@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     
 	QCoreApplication::setOrganizationName("SPBSTU");
 	QCoreApplication::setOrganizationDomain("spbstu.ru");
-	QCoreApplication::setApplicationName("InfoScreen");
+	QCoreApplication::setApplicationName("iPresenter");
 
 	QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 	QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
@@ -49,15 +49,16 @@ int main(int argc, char *argv[])
     
     Q_ASSERT(imageView != NULL);
     signal(SIGINT, sigint_handler);
-    /*
+
     ImageViewController ivController(imageView);
     
     imageView->showFullScreen();
-    */
+
+    /*
     IMoviePlayer * moviePlayer = new MPlayerMoviePlayer();
     
-    moviePlayer->play("/home/dimaz/movies/Desperate.Housewives.S07E02.rus.LostFilm.TV.avi");
-    
+    moviePlayer->play("/home/dimaz/Downloads/Bespokoinaya.Anna.2007_[torrents.ru].avi");
+    */
     
     return a.exec();
 }

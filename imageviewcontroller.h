@@ -18,7 +18,7 @@ public:
     ~ImageViewController();
 
 signals:
-    void showImage(const QPixmap &pixmap);
+    void showImage(const QString &pixmapFilePath, const QString &imageHash);
     void imageBlockEnded();
     void imageBlockStarted();
     

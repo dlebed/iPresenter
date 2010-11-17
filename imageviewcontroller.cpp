@@ -11,15 +11,17 @@ ImageViewController::ImageViewController(ImageView * imageView) :
 {
     Q_ASSERT(imageView != NULL);
    
-    connect(this, SIGNAL(showImage(QPixmap)), imageView, SLOT(showImage(QPixmap)), Qt::QueuedConnection);
+    connect(this, SIGNAL(showImage(QString, QString)), imageView, SLOT(showImage(QString, QString)), Qt::QueuedConnection);
     
     // Show initial image
-    emit showImage(QPixmap(":status/image_missing"));
+    emit showImage(":status/image_missing", "");
     
     imageTimer.setSingleShot(true);
     connect(&imageTimer, SIGNAL(timeout()), this, SLOT(nextImage()));
     
     QTimer::singleShot(2000, this, SLOT(testLoad()));
+
+    QTimer::singleShot(20000, this, SLOT(testLoad()));
 }
 
 ImageViewController::~ImageViewController() {
@@ -51,7 +53,7 @@ void ImageViewController::nextImage() {
         return;
     }
     
-    QString imageFilename;
+    QString imageFilename, imageHash;
     
     while (imageFilename.isEmpty() && !currentImageElement.isNull()) {
         if (!isFirstBlockImageElement) {
@@ -69,9 +71,10 @@ void ImageViewController::nextImage() {
         }
         
         imageFilename = hashQuery.lookupFilePathByHash(currentImageElement.attribute("hash"), HashQuery::FILE_TYPE_IMAGE);
+        imageHash = currentImageElement.attribute("hash");
     }
     
-    emit showImage(QPixmap(imageFilename));
+    emit showImage(imageFilename, imageHash);
     imageTimer.setInterval(currentImageElement.attribute("timeout").toUInt() * 1000);
     imageTimer.start();
 }

@@ -7,7 +7,7 @@
 #include "ipixmapcache.h"
 
 #define MEM_PIXMAP_CACHE_MAX_ITEM   32
-#define CLEAN_LOOKUP_NUM_FACTOR     0.2
+#define CLEAN_LOOKUP_NUM_FACTOR     0.5
 
 class MemPixmapCache : public IPixmapCache {
     typedef struct {
@@ -24,6 +24,8 @@ public:
     virtual QPixmap pixmapLookup(const QString &key);
     virtual quint8 pixmapAdd(const QPixmap &pixmap, const QString &key);
     virtual quint8 pixmapRemove(const QString &key);
+
+    virtual void clear() { pixmapHash.clear(); }
     
 protected:
     void cleanOldRecords();

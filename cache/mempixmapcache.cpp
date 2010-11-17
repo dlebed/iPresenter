@@ -6,7 +6,7 @@ MemPixmapCache::MemPixmapCache(quint32 maxNumOfObjects) :
     maxItemCount(maxNumOfObjects)
 {
     
-    
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Memory pixmap cache created. Max number of objects:" << maxItemCount;
 }
 
 
@@ -17,21 +17,26 @@ QPixmap MemPixmapCache::pixmapLookup(const QString &key) {
         return pixmapHash.value(key).pixmap;
     }
     
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Unknown pixmap key:" << key;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Unknown or empty pixmap key:" << key;
 
     return QPixmap();
 }
 
 
 quint8 MemPixmapCache::pixmapAdd(const QPixmap &pixmap, const QString &key) {
-    Q_ASSERT(pixmapHash.size() > 0);
+    Q_ASSERT(pixmapHash.size() >= 0);
     
-    if (key.isEmpty())
+    if (key.isEmpty()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Trying to add pixmap with an empty key";
         return E_EMPTY_KEY;
+    }
     
     // If Cache overflow
-    if (pixmapHash.size() >= maxItemCount)
+    if (pixmapHash.size() >= maxItemCount) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Pixmap count is greater than max:" << pixmapHash.size() <<
+                                                               ", cleaning...";
         cleanOldRecords();
+    }
 
     pixmap_cache_item_t pixmap_item = { pixmap, 0 };
     pixmapHash.insert(key, pixmap_item);    

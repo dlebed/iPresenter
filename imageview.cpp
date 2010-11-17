@@ -5,9 +5,11 @@
 #include <qlogger.h>
 #include "imageview.h"
 
+#include "cache/mempixmapcache.h"
+
 ImageView::ImageView(QWidget *parent) :
     QGraphicsView(parent), 
-    graphicsScene(NULL), cachedPixmapItem(NULL), currentPixmapItem(NULL), prevPixmapItem(NULL)
+    graphicsScene(NULL), currentPixmapItem(NULL), prevPixmapItem(NULL), pixmapCache(NULL)
 {
 	setGeometry(0, 0, QApplication::desktop()->screenGeometry(this).width(), QApplication::desktop()->screenGeometry(this).height());
        
@@ -22,39 +24,27 @@ ImageView::ImageView(QWidget *parent) :
     imageChangeTimeLine.setDuration(settings.value("ui/image_presenter/image_change/duration", 500).toUInt());
     connect(&imageChangeTimeLine, SIGNAL(valueChanged(qreal)), this, SLOT(imageOpacityUpdate(qreal)));
     
+    pixmapCache = new MemPixmapCache();
+    Q_ASSERT(pixmapCache != NULL);
+
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "started";
 }
 
 ImageView::~ImageView() {
-    
-}
-
-void ImageView::cacheImage(const QPixmap &pixmap) {
-    QPixmap cachedPixmap = resizePixmap(pixmap);
-    
-    cachedPixmapMutex.lock();
-    
-    if (cachedPixmapItem != NULL)
-        delete cachedPixmapItem;
-    
-    cachedPixmapItem = new QGraphicsPixmapItem(cachedPixmap);
-    
-    cachedPixmapMutex.unlock();
-}
-
-void ImageView::showCachedImage() {
-    cachedPixmapMutex.lock();
-    
-    if (cachedPixmapItem != NULL) {
-        showPixmapItem(cachedPixmapItem);
-        cachedPixmapItem = NULL;
+    if (pixmapCache != NULL) {
+        delete pixmapCache;
+        pixmapCache = NULL;
     }
-    
-    cachedPixmapMutex.unlock();
 }
 
-void ImageView::showImage(const QPixmap &pixmap) {
-    QPixmap imagePixmap = resizePixmap(pixmap);
+void ImageView::showImage(const QString &pixmapFilePath, const QString &imageHash) {
+    QPixmap imagePixmap = pixmapCache->pixmapLookup(imageHash);
+
+    // If pixmap is not in a cache
+    if (imagePixmap.isNull()) {
+        imagePixmap = resizePixmap(QPixmap(pixmapFilePath));
+        pixmapCache->pixmapAdd(imagePixmap, imageHash);
+    }
         
     showPixmapItem(new QGraphicsPixmapItem(imagePixmap));
 }
@@ -77,6 +67,9 @@ void ImageView::showPixmapItem(QGraphicsPixmapItem * pixmapItem) {
     
     graphicsScene->addItem(currentPixmapItem);
     
+    if (!isVisible())
+        show();
+
     if (settings.value("ui/image_presenter/image_change/smooth", true).toBool()) {
         imageChangeTimeLine.start();
     } else {

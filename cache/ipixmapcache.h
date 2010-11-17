@@ -24,6 +24,8 @@ public:
     virtual QPixmap pixmapLookup(const QString &key) = 0;
     virtual quint8 pixmapAdd(const QPixmap &pixmap, const QString &key) = 0;
     virtual quint8 pixmapRemove(const QString &key) = 0;
+
+    virtual void clear() = 0;
     
 };
 
