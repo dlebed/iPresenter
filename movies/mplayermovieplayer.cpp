@@ -101,7 +101,7 @@ void MPlayerMoviePlayer::sendCmd(quint8 cmd, quint8 value) {
 }
 
 void MPlayerMoviePlayer::playerFinishedHandler(int exitCode, QProcess::ExitStatus exitStatus) {
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Mplayer finished. Returned:" << 
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "MPlayer finished. Returned:" << 
                                                           exitCode << "; exit status:" << exitStatus;
     
     state = IMoviePlayer::PLAYER_STATE_IDLE;
