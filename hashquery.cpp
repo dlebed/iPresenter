@@ -13,9 +13,14 @@ HashQuery::HashQuery(const QString &hashName) :
 {
     QString dbPath = settings.value("hash/db_path", "/etc/ads/hash.sqlite").toString();
     
-    db = QSqlDatabase::addDatabase("QSQLITE");
+    db = QSqlDatabase::addDatabase("QSQLITE", HASH_QUERY_DB_NAME);
     db.setDatabaseName(dbPath);
 
+    if (!QFile::exists(dbPath)) {
+        QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Hash DB file does not exists:" << dbPath;
+        QApplication::exit(1);
+    }
+    
     if (!db.open()) {
         QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Cannot open hash DB";
         QApplication::exit(1);
@@ -37,6 +42,8 @@ HashQuery::~HashQuery() {
         delete hashCalculator;
         hashCalculator = NULL;
     }
+    
+    db.close();
 }
 
 

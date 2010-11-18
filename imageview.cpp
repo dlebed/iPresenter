@@ -18,6 +18,7 @@ ImageView::ImageView(QWidget *parent) :
     setWindowTitle("iPresenter");
     
     graphicsScene = new QGraphicsScene(this);
+    Q_ASSERT(graphicsScene != NULL);
     setScene(graphicsScene);
     
     imageChangeTimeLine.setFrameRange(0, settings.value("ui/image_presenter/image_change/frame_count", TIMELINE_FRAMES).toUInt());
@@ -52,6 +53,8 @@ void ImageView::showImage(const QString &pixmapFilePath, const QString &imageHas
 void ImageView::showPixmapItem(QGraphicsPixmapItem * pixmapItem) {
     prevPixmapItem = currentPixmapItem;
     currentPixmapItem = pixmapItem;
+    
+    Q_ASSERT(pixmapItem != NULL);
     
     if (prevPixmapItem != NULL) {
         prevPixmapItem->setZValue(0);

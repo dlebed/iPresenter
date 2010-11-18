@@ -9,6 +9,8 @@
 #include "ihashquery.h"
 #include "hash/ihashcalculator.h"
 
+#define HASH_QUERY_DB_NAME      "HashQuery"
+
 class HashQuery : public IHashQuery {
 public:
     

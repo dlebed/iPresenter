@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui svg sql xml
+QT       += core gui svg sql xml network
 
 TARGET = iPresenter
 CONFIG   -= app_bundle
@@ -20,7 +20,10 @@ SOURCES += main.cpp \
     movies/mplayermovieplayer.cpp \
     hash/md5hashcalculator.cpp \
     hash/hashcalculatorfactory.cpp \
-    cache/mempixmapcache.cpp
+    cache/mempixmapcache.cpp \
+    blockcontroller.cpp \
+    presentationcontroller.cpp \
+    blockloader.cpp
 
 HEADERS += \
     imageview.h \
@@ -33,7 +36,10 @@ HEADERS += \
     hash/md5hashcalculator.h \
     hash/hashcalculatorfactory.h \
     cache/ipixmapcache.h \
-    cache/mempixmapcache.h
+    cache/mempixmapcache.h \
+    blockcontroller.h \
+    presentationcontroller.h \
+    blockloader.h
 
 RESOURCES += \
     icons.qrc

@@ -103,3 +103,10 @@ void ImageViewController::showImageBlock(const QDomDocument &blockDocument) {
     emit imageBlockStarted();
     nextImage();
 }
+
+void ImageViewController::interruptImageBlock() {
+    imageTimer.stop();
+    imageView->hide();
+    currentImageElement = QDomElement();
+    emit imageBlockEnded();
+}

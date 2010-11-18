@@ -14,19 +14,19 @@ extern "C" {
 #include <qlogger/consoleloghandler.h>
 #include <qlogger/sysloghandler.h>
 
-#include "imageview.h"
-#include "imageviewcontroller.h"
-#include "movies/imoviemplayer.h"
-#include "movies/mplayermovieplayer.h"
+#include "presentationcontroller.h"
 
-ImageView * imageView = NULL;
+PresentationController * presentationController = NULL;
 
 void sigint_handler(int signal) {
     if (signal == 2) {        
         qDebug() << "Catched SIGINT. Exiting...";
         
-        if (imageView != NULL)
-            imageView->close();
+        if (presentationController != NULL) {
+            presentationController->exit();
+        } else {
+            exit(2);
+        }
     }
 }
 
@@ -45,20 +45,12 @@ int main(int argc, char *argv[])
 
     initQLogger();
     
-    imageView = new ImageView();
-    
-    Q_ASSERT(imageView != NULL);
     signal(SIGINT, sigint_handler);
 
-    ImageViewController ivController(imageView);
+    PresentationController controller;
+    presentationController = &controller;
     
-    imageView->showFullScreen();
-
-    /*
-    IMoviePlayer * moviePlayer = new MPlayerMoviePlayer();
-    
-    moviePlayer->play("/home/dimaz/Downloads/Bespokoinaya.Anna.2007_[torrents.ru].avi");
-    */
+    presentationController->start();
     
     return a.exec();
 }

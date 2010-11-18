@@ -25,6 +25,7 @@ signals:
 public slots:
     void nextImage();
     void showImageBlock(const QDomDocument &blockDocument);
+    void interruptImageBlock();
     
 protected slots:
     void testLoad();
