@@ -23,7 +23,8 @@ SOURCES += main.cpp \
     cache/mempixmapcache.cpp \
     blockcontroller.cpp \
     presentationcontroller.cpp \
-    blockloader.cpp
+    blockloader.cpp \
+    hash/sha256hashcalculator.cpp
 
 HEADERS += \
     imageview.h \
@@ -39,7 +40,8 @@ HEADERS += \
     cache/mempixmapcache.h \
     blockcontroller.h \
     presentationcontroller.h \
-    blockloader.h
+    blockloader.h \
+    hash/sha256hashcalculator.h
 
 RESOURCES += \
     icons.qrc
@@ -49,6 +51,9 @@ RESOURCES += \
 INCLUDEPATH += ./qlogger
 QMAKE_LIBDIR += ./qlogger
 LIBS += -lqlogger
+
+# OpenSSL
+LIBS += -lcrypto
 
 
 QMAKE_CXXFLAGS += -Wno-unused-parameter

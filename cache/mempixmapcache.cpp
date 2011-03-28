@@ -13,8 +13,10 @@ MemPixmapCache::MemPixmapCache(quint32 maxNumOfObjects) :
 QPixmap MemPixmapCache::pixmapLookup(const QString &key) {
     if (!key.isEmpty() && pixmapHash.contains(key)) {
         pixmapHash[key].lookupCount++;
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Pixmap found for key:" << key;
-        return pixmapHash.value(key).pixmap;
+        QPixmap pixmap = pixmapHash.value(key).pixmap;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Pixmap found for key:" << key << "; pixmap size:" <<
+                                                               pixmap.size().width() << "x" << pixmap.size().height();
+        return pixmap;
     }
     
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Unknown or empty pixmap key:" << key;
@@ -41,7 +43,8 @@ quint8 MemPixmapCache::pixmapAdd(const QPixmap &pixmap, const QString &key) {
     pixmap_cache_item_t pixmap_item = { pixmap, 0 };
     pixmapHash.insert(key, pixmap_item);    
     
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Adding pixmap with key:" << key;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Adding pixmap with key:" << key << "; pixmap size:" <<
+                                                           pixmap.size().width() << "x" << pixmap.size().height();
 
     return E_OK;
 }

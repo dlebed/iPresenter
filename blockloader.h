@@ -11,7 +11,7 @@ class BlockLoader : public QThread
 {
     Q_OBJECT
 public:
-    BlockLoader(const QString &hashType = "md5", QObject *parent = 0);
+    BlockLoader(const QString &hashType = "sha256", QObject *parent = 0);
     ~BlockLoader();
 
     void run();

@@ -78,5 +78,5 @@ void PresentationController::loadInitialBlock() {
     QDomDocument initialBlock;
     
     
-    emit newBlockXml(initialBlock);
+    //emit newBlockXml(initialBlock);
 }

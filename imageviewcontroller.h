@@ -37,6 +37,7 @@ private:
     ImageView * imageView;
     QDomElement currentImageElement;
     QDomDocument currentImageBlockDocument;
+    quint16 blockLoopCount, loopCounter;
     bool isFirstBlockImageElement;
 
 };

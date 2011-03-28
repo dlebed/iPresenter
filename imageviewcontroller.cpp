@@ -7,7 +7,9 @@
 #include <qlogger.h>
 
 ImageViewController::ImageViewController(ImageView * imageView) :
-    imageView(imageView), isFirstBlockImageElement(true)
+    imageView(imageView), 
+    blockLoopCount(0), loopCounter(0),
+    isFirstBlockImageElement(true)
 {
     Q_ASSERT(imageView != NULL);
    
@@ -21,7 +23,6 @@ ImageViewController::ImageViewController(ImageView * imageView) :
     
     QTimer::singleShot(2000, this, SLOT(testLoad()));
 
-    QTimer::singleShot(20000, this, SLOT(testLoad()));
 }
 
 ImageViewController::~ImageViewController() {
@@ -31,7 +32,7 @@ ImageViewController::~ImageViewController() {
 void ImageViewController::testLoad() {
     // Test
     QDomDocument doc;
-    QFile file("images/script.xml");
+    QFile file("test/images.xml");
     
     if (!file.open(QIODevice::ReadOnly))
         return;
@@ -63,11 +64,22 @@ void ImageViewController::nextImage() {
         }
         
         if (currentImageElement.isNull()) {
-            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
-                                                                   "There is no more 'image' tags in images block.";
-            imageView->hide();
-            imageView->clear();
-            emit imageBlockEnded();
+            // Check loop count
+            if (++loopCounter < blockLoopCount) {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ <<
+                                                                       "Image block loop" << loopCounter << "of" << blockLoopCount << "is ended";
+                
+                currentImageElement = currentImageBlockDocument.documentElement().firstChildElement("image");
+                isFirstBlockImageElement = true;
+                nextImage();
+            } else {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
+                                                                       "There is no more 'image' tags in images block.";
+                imageView->hide();
+                imageView->clear();
+                emit imageBlockEnded();
+            }
+            
             return;
         }
         
@@ -85,9 +97,9 @@ void ImageViewController::showImageBlock(const QDomDocument &blockDocument) {
     QDomElement rootElement = blockDocument.documentElement();
     currentImageBlockDocument = blockDocument;
     
-    if (rootElement.isNull() || rootElement.tagName() != "image_block") {
+    if (rootElement.isNull() || rootElement.tagName() != "images") {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << 
-                                                               "Thr root XML tag is not an 'image_block':" << rootElement.tagName();
+                                                               "Thr root XML tag is not an 'images':" << rootElement.tagName();
         return;
     }
     
@@ -99,6 +111,8 @@ void ImageViewController::showImageBlock(const QDomDocument &blockDocument) {
     }
     
     currentImageElement = rootElement.firstChildElement("image");
+    blockLoopCount = rootElement.attribute("loop", "1").toUShort();
+    loopCounter = 0;
     
     isFirstBlockImageElement = true;
     emit imageBlockStarted();
