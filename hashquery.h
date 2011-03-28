@@ -14,7 +14,7 @@
 class HashQuery : public IHashQuery {
 public:
     
-    HashQuery(const QString &hashName = "md5");
+    HashQuery(const QString &hashName = "sha256");
     virtual ~HashQuery();
     
     void addFilePathWithHash(const QString &filePath, FILE_TYPE fileType);

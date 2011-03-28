@@ -100,8 +100,6 @@ QString HashQuery::fileTypeStr(FILE_TYPE type) {
         return "images";
     case FILE_TYPE_MOVIE:
         return "movies";
-    case FILE_TYPE_BLOCK:
-        return "blocks";
     }
     
     return QString();
