@@ -3,22 +3,26 @@
 
 #include <QObject>
 #include <QDomDocument>
+#include <QList>
+#include <QSettings>
+#include <QTimer>
 
-#include "imageview.h"
-#include "imageviewcontroller.h"
-#include "movies/imoviemplayer.h"
-#include "blockcontroller.h"
+#include <imageview.h>
+#include <imageviewcontroller.h>
+#include <blockcontroller.h>
+#include <movieplayercontroller.h>
+#include <presentationparser.h>
 
 class PresentationController : public QObject
 {
     Q_OBJECT
 public:
+    
     PresentationController(QObject *parent = 0);
     ~PresentationController();
 
     void initObjects();
     void freeObjects();
-    
 
 public slots:
     void start();
@@ -28,17 +32,25 @@ signals:
     void initDone();
     void newBlockXml(const QDomDocument &blockDocument);
     
-protected:
-    IMoviePlayer *createMoviePlayer();
-    
 protected slots:
     void loadInitialBlock();
     
+    void blockLoadedHandler();
+    
+    void blockEndedHandler();
+    
+    void timePeriodCheck();
+
+protected:    
+    
 private:
+    QSettings settings;
+    QTimer timePeriodCheckTimer;
     ImageView * imageView;
     ImageViewController * imageViewController;
-    IMoviePlayer * moviePlayer;
     BlockController *blockController;
+    MoviePlayerController *moviePlayerController;
+    PresentationParser *presentationParser;
 
 };
 

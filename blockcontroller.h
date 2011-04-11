@@ -6,7 +6,7 @@
 #include <QDomElement>
 
 #include "imageviewcontroller.h"
-#include "movies/imoviemplayer.h"
+#include <movieplayercontroller.h>
 #include "blockloader.h"
 
 class BlockController : public QObject
@@ -22,12 +22,14 @@ public:
                 STATE_FETCHING_BLOCK    =   0x04
     } BLOCK_CONTROLLER_STATE;
 
-    BlockController(ImageViewController *imageViewController, IMoviePlayer *moviePlayer, QObject *parent = 0);
+    BlockController(ImageViewController *imageViewController, MoviePlayerController *moviePlayerController, QObject *parent = 0);
 
+    ~BlockController();
 
 public slots:
     void setNewBlockXml(const QDomDocument &blockDocument);
-    void stop();
+    void stopBlock();
+    void startBlock();
     
 protected slots:
     void imageBlockEnded();
@@ -41,9 +43,12 @@ protected slots:
 signals:
     void blockStarted();
     void blockEnded();
+    void blockStopped();
+    void newBlockLoaded();
     
     // Control signals
     void showImageBlock(const QDomDocument &blockDocument);
+    void showMovie(const QString &hash);
     
 private:
     QDomDocument currentBlockDocument;
@@ -51,7 +56,7 @@ private:
     QString currentBlockID;
     
     ImageViewController * imageViewController;
-    IMoviePlayer * moviePlayer;
+    MoviePlayerController * moviePlayerController;
     BlockLoader * blockLoader;
     BLOCK_CONTROLLER_STATE currentState, prevState;
     

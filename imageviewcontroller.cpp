@@ -21,7 +21,7 @@ ImageViewController::ImageViewController(ImageView * imageView) :
     imageTimer.setSingleShot(true);
     connect(&imageTimer, SIGNAL(timeout()), this, SLOT(nextImage()));
     
-    QTimer::singleShot(2000, this, SLOT(testLoad()));
+    //QTimer::singleShot(2000, this, SLOT(testLoad()));
 
 }
 
@@ -83,7 +83,7 @@ void ImageViewController::nextImage() {
             return;
         }
         
-        imageFilename = hashQuery.lookupFilePathByHash(currentImageElement.attribute("hash"), HashQuery::FILE_TYPE_IMAGE);
+        imageFilename = hashQuery.lookupFilePathByHash(currentImageElement.attribute("hash"), FILE_TYPE_IMAGE);
         imageHash = currentImageElement.attribute("hash");
     }
     
@@ -120,8 +120,15 @@ void ImageViewController::showImageBlock(const QDomDocument &blockDocument) {
 }
 
 void ImageViewController::interruptImageBlock() {
+    bool isImageViewVisible = imageView->isVisible();
     imageTimer.stop();
     imageView->hide();
     currentImageElement = QDomElement();
-    emit imageBlockEnded();
+    
+    if (isImageViewVisible)
+        emit imageBlockEnded();     
+}
+
+void ImageViewController::showEmptyBlock() {
+    emit showImage(":status/image_missing", "");
 }

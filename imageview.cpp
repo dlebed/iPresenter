@@ -74,6 +74,9 @@ void ImageView::showPixmapItem(QGraphicsPixmapItem * pixmapItem) {
         show();
 
     if (settings.value("ui/image_presenter/image_change/smooth", true).toBool()) {
+        if (imageChangeTimeLine.state() == QTimeLine::Running)
+            imageChangeTimeLine.stop();
+        
         imageChangeTimeLine.start();
     } else {
         graphicsScene->removeItem(prevPixmapItem);

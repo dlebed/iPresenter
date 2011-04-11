@@ -24,7 +24,9 @@ SOURCES += main.cpp \
     blockcontroller.cpp \
     presentationcontroller.cpp \
     blockloader.cpp \
-    hash/sha256hashcalculator.cpp
+    hash/sha256hashcalculator.cpp \
+    movieplayercontroller.cpp \
+    presentationparser.cpp
 
 HEADERS += \
     imageview.h \
@@ -41,7 +43,11 @@ HEADERS += \
     blockcontroller.h \
     presentationcontroller.h \
     blockloader.h \
-    hash/sha256hashcalculator.h
+    hash/sha256hashcalculator.h \
+    loaders/iblockloader.h \
+    typedefs.h \
+    movieplayercontroller.h \
+    presentationparser.h
 
 RESOURCES += \
     icons.qrc

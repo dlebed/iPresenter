@@ -42,6 +42,10 @@ void MPlayerMoviePlayer::play(const QString &filename) {
         return;
     }
     
+    if (state == IMoviePlayer::PLAYER_STATE_PLAYING || state == IMoviePlayer::PLAYER_STATE_PAUSED) {
+        stop();
+    }
+    
     QStringList mplayerArgsList;
     mplayerArgsList << mplayerArgs << filename;
     currentMovieFilePath = filename;
@@ -73,6 +77,11 @@ void MPlayerMoviePlayer::resume() {
 
 void MPlayerMoviePlayer::stop() {
     state = IMoviePlayer::PLAYER_STATE_IDLE;
+    
+    if (playerProcess.state() != QProcess::Running) { 
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Player is not running";
+        return;
+    }
     
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Stopping Mplayer movie:" << currentMovieFilePath;
     playerProcess.write("q");

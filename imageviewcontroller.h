@@ -7,8 +7,8 @@
 #include <QTimer>
 #include <QDomElement>
 
-#include "imageview.h"
-#include "hashquery.h"
+#include <imageview.h>
+#include <hashquery.h>
 
 class ImageViewController : public QObject
 {
@@ -26,6 +26,7 @@ public slots:
     void nextImage();
     void showImageBlock(const QDomDocument &blockDocument);
     void interruptImageBlock();
+    void showEmptyBlock();
     
 protected slots:
     void testLoad();
