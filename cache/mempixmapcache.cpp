@@ -1,12 +1,20 @@
 #include "mempixmapcache.h"
 
+#include <QSettings>
+
 #include <qlogger.h>
 
 MemPixmapCache::MemPixmapCache(quint32 maxNumOfObjects) :
-    maxItemCount(maxNumOfObjects)
+    maxItemCount(maxNumOfObjects), cleanLookupNumFactor(CLEAN_LOOKUP_NUM_FACTOR_DEFAULT)
 {
-    
+    QSettings settings;
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Memory pixmap cache created. Max number of objects:" << maxItemCount;
+    
+    cleanLookupNumFactor = settings.value("cache/mem/clean_lookup_factor", cleanLookupNumFactor).toFloat();
+    
+    if (cleanLookupNumFactor <= 0) {
+        cleanLookupNumFactor = CLEAN_LOOKUP_NUM_FACTOR_DEFAULT;
+    }
 }
 
 
@@ -65,7 +73,7 @@ void MemPixmapCache::cleanOldRecords() {
     QString minItemKey;
     QList<QString> keyList = pixmapHash.keys();
     
-    for (quint32 i = 0; i < (keyList.size() * CLEAN_LOOKUP_NUM_FACTOR); i++) {
+    for (quint32 i = 0; i < (keyList.size() * cleanLookupNumFactor); i++) {
         quint32 index = qrand() % keyList.size();
         quint64 lookupCount = pixmapHash.value(keyList[index]).lookupCount;
         

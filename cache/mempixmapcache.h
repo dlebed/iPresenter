@@ -7,7 +7,7 @@
 #include "ipixmapcache.h"
 
 #define MEM_PIXMAP_CACHE_MAX_ITEM   32
-#define CLEAN_LOOKUP_NUM_FACTOR     0.5
+#define CLEAN_LOOKUP_NUM_FACTOR_DEFAULT     0.25
 
 class MemPixmapCache : public IPixmapCache {
     typedef struct {
@@ -34,6 +34,7 @@ protected:
 private:
     quint32 maxItemCount;
     QHash<QString, pixmap_cache_item_t> pixmapHash;
+    float cleanLookupNumFactor;
     
 };
 

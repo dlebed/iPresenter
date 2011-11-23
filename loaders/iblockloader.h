@@ -36,6 +36,6 @@ signals:
 };
 
 Q_DECLARE_INTERFACE(IBlockLoader,
-					"ru.dcn.Plugin.IBlockLoader/0.1");
+					"ru.dcn.iPresenter.Plugin.IBlockLoader/0.1");
 
 #endif // IBLOCKLOADER_H

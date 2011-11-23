@@ -12,6 +12,7 @@
 #include "cache/ipixmapcache.h"
 
 #define TIMELINE_FRAMES 20
+#define IMG_LOAD_MEASURE_TIMINGS
 
 class ImageView : public QGraphicsView
 {

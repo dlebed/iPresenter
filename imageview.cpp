@@ -2,6 +2,14 @@
 #include <QApplication>
 #include <QDebug>
 
+#include <cstdint>
+
+extern "C" {
+#include <sys/time.h>
+#include <stdio.h>
+#include <unistd.h>
+}
+
 #include <qlogger.h>
 #include "imageview.h"
 
@@ -43,7 +51,20 @@ void ImageView::showImage(const QString &pixmapFilePath, const QString &imageHas
 
     // If pixmap is not in a cache
     if (imagePixmap.isNull()) {
+#ifdef IMG_LOAD_MEASURE_TIMINGS
+        struct timeval start, end;
+        uint32_t mtime, seconds, useconds;      
+        gettimeofday(&start, NULL);
+#endif
         imagePixmap = resizePixmap(QPixmap(pixmapFilePath));
+#ifdef IMG_LOAD_MEASURE_TIMINGS
+        gettimeofday(&end, NULL);
+        seconds  = end.tv_sec  - start.tv_sec;
+        useconds = end.tv_usec - start.tv_usec;
+        mtime = ((seconds) * 1000 + useconds/1000.0) + 0.5;
+        
+        QLogger(QLogger::INFO_DEVICE, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Время загрузки изображения '" << pixmapFilePath << "': " << mtime << "мсек";
+#endif
         pixmapCache->pixmapAdd(imagePixmap, imageHash);
     }
         
