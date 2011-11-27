@@ -120,7 +120,7 @@ void BlockLoader::interruptLoading() {
 }
 
 void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
-    if (blockLoadersHash.size() == 0)
+    if (blockLoadersHash.size() == 0 && !settings.value("presentation/allow_incomplete_blocks", false).toBool())
         return;
     
     

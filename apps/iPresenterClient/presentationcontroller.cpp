@@ -115,6 +115,7 @@ void PresentationController::loadInitialBlock() {
     QDomDocument nextBlock = presentationParser->nextBlock();
     
     if (!nextBlock.isNull()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to show block" << nextBlock.toString();
         emit newBlockXml(nextBlock);
     } else {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Nothing to show";

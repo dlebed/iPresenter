@@ -32,17 +32,16 @@ void sigint_handler(int signal) {
 
 void initQLogger();
 
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    
+int main(int argc, char *argv[]) {
 	QCoreApplication::setOrganizationName("SPBSTU");
 	QCoreApplication::setOrganizationDomain("spbstu.ru");
-	QCoreApplication::setApplicationName("iPresenter");
+	QCoreApplication::setApplicationName("iPresenterClient");
 
 	QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 	QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
 
+    QApplication a(argc, argv);
+    
     initQLogger();
     
     signal(SIGINT, sigint_handler);

@@ -14,10 +14,10 @@ INCLUDEPATH += ..
 INCLUDEPATH += ../..
 
 # QLogger
-INCLUDEPATH += ../../qlogger
-unix            { QMAKE_LIBDIR += ../../qlogger         }
-win32:debug     { QMAKE_LIBDIR += ../../qlogger/debug   }
-win32:release   { QMAKE_LIBDIR += ../../qlogger/release }
+INCLUDEPATH += ../../../../libs/qlogger
+unix            { QMAKE_LIBDIR += ../../../../libs/qlogger         }
+win32:debug     { QMAKE_LIBDIR += ../../../../libs/qlogger/debug   }
+win32:release   { QMAKE_LIBDIR += ../../../../libs/qlogger/release }
 LIBS += -lqlogger
 
 # Параметры GCC

@@ -6,7 +6,7 @@
 
 QT       += core gui svg sql xml network
 
-TARGET = iPresenter
+TARGET = iPresenterClient
 CONFIG   -= app_bundle
 CONFIG   += debug
 
@@ -54,8 +54,8 @@ RESOURCES += \
 
 
 # QLogger
-INCLUDEPATH += ./qlogger
-QMAKE_LIBDIR += ./qlogger
+INCLUDEPATH += ../../libs/qlogger
+QMAKE_LIBDIR += ../../libs/qlogger
 LIBS += -lqlogger
 
 # OpenSSL
@@ -63,3 +63,4 @@ LIBS += -lcrypto
 
 
 QMAKE_CXXFLAGS += -Wno-unused-parameter
+QMAKE_CXXFLAGS += -std=c++0x

@@ -15,7 +15,7 @@ public:
     AgentsServer(QObject *parent = 0);
     ~AgentsServer();
     
-public slots:
+protected slots:
     void waitForThreads();
     
 protected:
