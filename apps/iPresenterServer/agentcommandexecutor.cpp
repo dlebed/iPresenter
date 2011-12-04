@@ -138,6 +138,7 @@ uint8_t AgentCommandExecutor::getScheduleVersion(QTcpSocket *tcpSocket, const QS
 
 uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QString &agentID) {
     uint8_t res;
+    schedule_version_t scheduleVersion = 0;
     QString scheduleData;
     NetworkProtoParser packetParser;
     QByteArray packetData;
@@ -151,11 +152,20 @@ uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QStri
     else if (res != IDBProxy::E_OK)
         return E_DB_ERROR;
     
+    res = dbProxy->getScheduleVersion(agentID, scheduleVersion);
+    
+    if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
+        return E_UNKNOWN_AGENT_ID;
+    else if (res != IDBProxy::E_OK)
+        return E_DB_ERROR;
+    
     if (!scheduleDocument.setContent(scheduleData))
         return E_XML_PARSE_ERROR;
     
     if ((res = fillScheduleBlocks(scheduleDocument)) != E_OK)
         return res;
+    
+    scheduleDocument.documentElement().setAttribute("version", scheduleVersion);    
     
     scheduleData = scheduleDocument.toString();
     
