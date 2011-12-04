@@ -3,11 +3,12 @@
 #include <QByteArray>
 #include <QSettings>
 #include <QFile>
+#include <QDomElement>
+#include <QDomDocument>
 
 #include <qlogger.h>
 
 #include "db/dbproxyfactory.h"
-
 
 
 #define MEDIA_READ_BLOCK_SIZE       (4 * 1024)
@@ -140,14 +141,23 @@ uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QStri
     QString scheduleData;
     NetworkProtoParser packetParser;
     QByteArray packetData;
+    QDomDocument scheduleDocument;
     Q_ASSERT(dbProxy != NULL);
     
     res = dbProxy->getScheduleData(agentID, scheduleData);
-
+    
     if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
         return E_UNKNOWN_AGENT_ID;
     else if (res != IDBProxy::E_OK)
         return E_DB_ERROR;
+    
+    if (!scheduleDocument.setContent(scheduleData))
+        return E_XML_PARSE_ERROR;
+    
+    if ((res = fillScheduleBlocks(scheduleDocument)) != E_OK)
+        return res;
+    
+    scheduleData = scheduleDocument.toString();
     
     packetParser.makeHeader(AGENT_GET_SCHEDULE_DATA);
     if (packetParser.appendPayloadData(scheduleData.toUtf8()) != NetworkProtoParser::E_OK)
@@ -156,7 +166,8 @@ uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QStri
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
         return E_GET_DATA;
     
-    tcpSocket->write(packetData);
+    if (tcpSocket->write(packetData) != packetData.size())
+        return E_SOCKET_WRITE_ERROR;
     
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
@@ -188,7 +199,8 @@ uint8_t AgentCommandExecutor::getMediaSize(QTcpSocket *tcpSocket, GetMediaSizeCm
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
         return E_GET_DATA;
     
-    tcpSocket->write(packetData);
+    if (tcpSocket->write(packetData) != packetData.size())
+        return E_SOCKET_WRITE_ERROR;
     
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
@@ -265,13 +277,57 @@ uint8_t AgentCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
         
         totalBytes += bytesReaded;
         
-        tcpSocket->write((char *)dataBuf, bytesReaded);
+        if (tcpSocket->write((char *)dataBuf, bytesReaded) != bytesReaded)
+            return E_SOCKET_WRITE_ERROR;
     }
     
     mediaFile.close();
     
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
+    
+    return E_OK;
+}
+
+uint8_t AgentCommandExecutor::fillScheduleBlocks(QDomDocument &scheduleDocument) {
+    QDomNodeList blockNodes = scheduleDocument.elementsByTagName("block");
+    QSet<QString> blockIDsList;
+    
+    //! Generating used block set
+    for (int i = 0; i < blockNodes.size(); i++) {
+        QDomElement blockElement = blockNodes.at(i).toElement();
+        if (blockElement.isNull())
+            continue;
+        
+        if (!blockElement.attribute("id").isEmpty()) {
+            blockIDsList.insert(blockElement.attribute("id"));
+        }
+    }
+    
+    QDomElement blocksElement = scheduleDocument.createElement("blocks");
+    scheduleDocument.documentElement().appendChild(blocksElement);
+    
+    foreach (const QString &blockID, blockIDsList) {
+        QString blockData;
+        QDomDocument blockDocument;
+        uint8_t res;
+        
+        res = dbProxy->getBlockData(blockID, blockData);
+        
+        if (res == IDBProxy::E_EMPTY_SELECT_RESULT) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unknown block id:" << blockID;
+            continue;
+        } else if (res != IDBProxy::E_OK) {
+            return E_DB_ERROR;
+        }
+        
+        if (!blockDocument.setContent(blockData)) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unable to parse block:" << blockID << blockData;
+            continue;
+        }
+        
+        blocksElement.appendChild(blockDocument.documentElement());
+    }
     
     return E_OK;
 }

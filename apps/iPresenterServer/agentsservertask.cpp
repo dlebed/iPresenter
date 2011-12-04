@@ -52,7 +52,9 @@ void AgentsServerTask::socketDisconnect(QTcpSocket *tcpSocket) {
 
 void AgentsServerTask::packetsReadLoop(QTcpSocket *tcpSocket) {
     NetworkProtoParser protoParser;
-    packet_size_t bytesToRead, bytesReaded;
+    QString socketAddress = socketAddressLine(tcpSocket);
+    packet_size_t bytesToRead;
+    int64_t bytesReaded;
     uint8_t *packetBuf = NULL;
     uint8_t res;
     bool isReadFailed = false;
@@ -67,26 +69,27 @@ void AgentsServerTask::packetsReadLoop(QTcpSocket *tcpSocket) {
             if (tcpSocket->bytesAvailable() <= 0) {
                 if (!tcpSocket->waitForReadyRead(readTimeout)) {
                     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Timeout reading header data from socket. Agent ip:" << 
-                                                                           socketAddressLine(tcpSocket);
+                                                                           socketAddress;
                     isReadFailed = true;
                     break;
                 }
             }
             
             packetBuf = new uint8_t[bytesToRead];
+            Q_ASSERT(packetBuf != NULL);
             
             bytesReaded = tcpSocket->read((char *)packetBuf, bytesToRead);
             
             if (bytesReaded <= 0) {
                 QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error reading header data from socket. Agent ip:" << 
-                                                                       socketAddressLine(tcpSocket);
+                                                                       socketAddress;
                 isReadFailed = true;
                 break;
             }
             
             if ((res = protoParser.bytesReaded(packetBuf, bytesReaded)) != NetworkProtoParser::E_OK) {
                 QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Error parsing packet:" << res << ". Agent ip:" << 
-                                                                      socketAddressLine(tcpSocket);
+                                                                      socketAddress;
                 isReadFailed = true;
                 break;
             }
@@ -99,17 +102,17 @@ void AgentsServerTask::packetsReadLoop(QTcpSocket *tcpSocket) {
             break;
         
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Packet readed. Starting to execute command. Agent ip:" << 
-                                                               socketAddressLine(tcpSocket);
+                                                               socketAddress;
         
         res = commandExecutor->executeCommand(protoParser, tcpSocket);
         
         if (res != AgentCommandExecutor::E_OK) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Command execution error:" << res << ". Agent ip:" << 
-                                                                  socketAddressLine(tcpSocket);
+                                                                  socketAddress;
         }
         
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Command executed. Reading next... Agent ip:" << 
-                                                               socketAddressLine(tcpSocket);
+                                                               socketAddress;
         
     }
     

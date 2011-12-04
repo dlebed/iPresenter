@@ -24,7 +24,7 @@ public slots:
 	
 	virtual bool initBlockLoader() = 0;
 	
-	virtual quint8 loadFile(const QString &fileHash, FILE_TYPE fileType, QString &loadedFilePath) = 0;
+	virtual quint8 loadFile(const QString &fileHash, FILE_TYPE fileType, QString &filePath) = 0;
 	
 	virtual quint8 cleanTempDir() = 0;
 	

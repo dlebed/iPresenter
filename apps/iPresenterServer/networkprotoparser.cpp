@@ -4,6 +4,8 @@
 
 #include <qlogger.h>
 
+#define MEDIA_READ_BLOCK_SIZE       (128 * 1024)
+
 NetworkProtoParser::NetworkProtoParser() :
     maxPacketSizeValue(0)
 {

@@ -13,6 +13,7 @@ public:
     virtual ~IHashQuery() {}; 
     
     virtual void addFilePathWithHash(const QString &filePath, FILE_TYPE fileType) = 0;
+    virtual void addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType) = 0;
     virtual QString lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileType) = 0;
     
 };

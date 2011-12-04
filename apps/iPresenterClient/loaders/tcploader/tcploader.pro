@@ -7,11 +7,14 @@ TARGET = tcploader
 CONFIG += lib
 TEMPLATE = lib
 DEFINES += Q_TCP_LOADER_LIBRARY
-SOURCES += tcploader.cpp
-HEADERS += tcploader.h
+SOURCES += tcploader.cpp \
+            ../../../iPresenterServer/networkprotoparser.cpp
+HEADERS += tcploader.h \
+            ../../../iPresenterServer/networkprotoparser.h
 
 INCLUDEPATH += ..
 INCLUDEPATH += ../..
+INCLUDEPATH += ../../../iPresenterServer
 
 # QLogger
 INCLUDEPATH += ../../../../libs/qlogger

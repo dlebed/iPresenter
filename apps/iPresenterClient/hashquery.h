@@ -18,6 +18,7 @@ public:
     virtual ~HashQuery();
     
     void addFilePathWithHash(const QString &filePath, FILE_TYPE fileType);
+    void addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType);
     QString lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileType);
     
 protected:

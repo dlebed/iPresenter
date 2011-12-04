@@ -79,6 +79,32 @@ void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType)
     }
 }
 
+void HashQuery::addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType) {
+    if (!QFile::exists(filePath)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Attempt to add hash for non-existing file:" <<
+                                                                filePath;
+        return;
+    }
+    
+    QSqlQuery query(db);
+    bool ok = false;
+    
+    if (!fileHash.isEmpty()) {        
+        ok = query.exec("INSERT INTO " + fileTypeStr(fileType) + " (hash, filepath) VALUES ('" + fileHash + "', '" + filePath + "');");
+        
+        if (!ok) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath << "; type:" <<
+                                                                    fileTypeStr(fileType) <<
+                                                                    "; hash:" << fileHash << ":" << db.lastError().text();
+        }
+        
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Unable to add file hash into DB" << filePath << "; type:" <<
+                                                                fileTypeStr(fileType) <<
+                                                                "; file hash is empty";
+    }
+}
+
 QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileType) {
     QString filePath;
     
