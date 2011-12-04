@@ -15,6 +15,8 @@ extern "C" {
 
 #include "agentsserver.h"
 
+#include "db/dbproxyfactory.h"
+
 #define DEFAULT_AGENTS_PORT     5115
 
 AgentsServer *agentsServer = NULL;
@@ -55,6 +57,8 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, sigint_handler);
     
     initQLogger();
+    
+    DBProxyFactory::setDefaultConnectionString(settings.value("db/connection_string", "host=127.0.0.1; db=ipresenter; user=postgres;").toString());
     
     agentsServer = new AgentsServer();
     Q_ASSERT(agentsServer != NULL);

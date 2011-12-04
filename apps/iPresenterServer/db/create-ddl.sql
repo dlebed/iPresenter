@@ -21,7 +21,7 @@ CREATE TABLE agents_groups  (   id              SERIAL PRIMARY KEY,
 
 CREATE TABLE agents (           id              SERIAL PRIMARY KEY,
                                 group_id        integer REFERENCES agents_groups (id) NOT NULL,
-                                agent_id        varchar(128) NOT NULL
+                                agent_id        varchar(128) NOT NULL UNIQUE
                     );
 
 
@@ -53,7 +53,7 @@ CREATE TABLE blocks_media   (   block_id        integer REFERENCES blocks (id) N
 CREATE UNIQUE INDEX blocks_media_index  ON blocks_media (block_id, media_id);
 
 CREATE TABLE schedule   (       id              SERIAL PRIMARY KEY,
-                                group_id        integer REFERENCES agents_groups (id) NOT NULL,
+                                group_id        integer REFERENCES agents_groups (id) NOT NULL UNIQUE,
                                 add_timestamp   timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                 last_change     timestamp with time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                 version         integer NOT NULL DEFAULT 0,

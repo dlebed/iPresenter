@@ -41,19 +41,22 @@ public:
     NetworkProtoParser();
     ~NetworkProtoParser();
     
-    packet_size_t bytesToReadCount();
+    packet_size_t bytesToReadCount() const;
     
     uint8_t bytesReaded(uint8_t *data, uint8_t size);
-    uint8_t cmd(packet_cmd_t &cmd);
-    uint8_t payloadSize(packet_size_t &payloadSize);
-    packet_size_t packetSize();
+    uint8_t cmd(packet_cmd_t &cmd) const;
+    uint8_t payloadSize(packet_size_t &payloadSize) const;
+    packet_size_t packetSize() const;
+    packet_size_t maxPacketSize() const { return maxPacketSizeValue; }
     
     void clear();
     void makeHeader(packet_cmd_t cmd);
     uint8_t appendPayloadData(uint8_t *data, packet_size_t size);
+    uint8_t appendPayloadData(const QByteArray &data);
+    uint8_t incPayloadSize(packet_size_t size);
     
-    uint8_t packetData(QByteArray &packetDataBuf);
-    uint8_t payloadData(QByteArray &payloadDataBuf);
+    uint8_t packetData(QByteArray &packetDataBuf) const;
+    uint8_t payloadData(QByteArray &payloadDataBuf) const;
     
 protected:
     uint8_t checkPacket();
@@ -61,7 +64,7 @@ protected:
 private:
     QByteArray packetDataBuf;
     NetworkPacketHeader packetHeader;
-    packet_size_t maxPacketSize;
+    packet_size_t maxPacketSizeValue;
 };
 
 #endif // NETWORKPROTOPARSER_H

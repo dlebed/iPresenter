@@ -20,7 +20,23 @@ TEMPLATE = app
 SOURCES += main.cpp \
     agentsserver.cpp \
     agentsservertask.cpp \
-    storage/storageproxyfabric.cpp
+    storage/storageproxyfabric.cpp \
+    db/dbproxyfactory.cpp \
+    db/psqldbproxy.cpp \
+    networkprotoparser.cpp \
+    agentcommandexecutor.cpp
+
+HEADERS += \
+    agentsserver.h \
+    agentsservertask.h \
+    types.h \
+    storage/storageproxyfabric.h \
+    storage/istorageproxy.h \
+    db/idbproxy.h \
+    db/dbproxyfactory.h \
+    db/psqldbproxy.h \
+    networkprotoparser.h \
+    agentcommandexecutor.h
 
 
 # QLogger
@@ -33,10 +49,3 @@ LIBS += -lcrypto
 
 QMAKE_CXXFLAGS += -Wno-unused-parameter
 QMAKE_CXXFLAGS += -std=c++0x
-
-HEADERS += \
-    agentsserver.h \
-    agentsservertask.h \
-    types.h \
-    storage/storageproxyfabric.h \
-    storage/istorageproxy.h
