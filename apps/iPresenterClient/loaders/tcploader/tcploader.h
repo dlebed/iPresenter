@@ -49,6 +49,11 @@ signals:
 protected:
     bool getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, media_size_t &fileSize);
     
+    bool getMediaFileData(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, uint8_t *buf, 
+                          media_size_t offset, media_size_t size, media_size_t &readedSize);
+    
+    
+    
 private:
     QSettings settings;
     QString tempDir;

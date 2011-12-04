@@ -117,7 +117,7 @@ QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileT
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Path for file:" << filePath << "; type:" <<
                                                               fileTypeStr(fileType) << "; hash:" << fileHash;
     } else {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to get file path for hash. File type:" << 
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Unable to get file path for hash. File type:" << 
                                                                fileTypeStr(fileType) << ". File hash:" << fileHash;
     }
     

@@ -43,7 +43,7 @@ public:
     
     packet_size_t bytesToReadCount() const;
     
-    uint8_t bytesReaded(uint8_t *data, uint8_t size);
+    uint8_t bytesReaded(uint8_t *data, packet_size_t size);
     uint8_t cmd(packet_cmd_t &cmd) const;
     uint8_t payloadSize(packet_size_t &payloadSize) const;
     packet_size_t packetSize() const;

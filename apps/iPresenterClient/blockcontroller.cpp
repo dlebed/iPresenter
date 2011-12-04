@@ -53,18 +53,18 @@ void BlockController::setNewBlockXml(const QDomDocument &blockDocument) {
 }
 
 void BlockController::stopBlock() {
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__;
     
     prevState = currentState;
     currentState = STATE_IDLE;
     
     if (prevState == STATE_PLAYING_MOVIE) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Stopping playing movie";
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Stopping playing movie";
         moviePlayerController->interruptMovie();
     }
     
     if (prevState == STATE_PLAYING_IMAGE) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Stopping playing image block";
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Stopping playing image block";
         imageViewController->interruptImageBlock();
     }
     

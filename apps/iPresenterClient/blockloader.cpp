@@ -167,7 +167,9 @@ void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
                 Q_ASSERT(hashQuery != NULL);
                 if (hashQuery->lookupFilePathByHash(imageHash, FILE_TYPE_IMAGE).isEmpty()) {
                     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Found new image to load:" << imageHash;
-                    loadMediaFile(imageHash, FILE_TYPE_IMAGE);
+                    if (loadMediaFile(imageHash, FILE_TYPE_IMAGE) != E_OK) {
+                        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Image load failed:" << imageHash;
+                    }
                 }
             } else {
                 QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Found image tag with empty hash:" << imageElement.toText().data();
@@ -190,7 +192,9 @@ void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
             Q_ASSERT(hashQuery != NULL);
             if (hashQuery->lookupFilePathByHash(movieHash, FILE_TYPE_MOVIE).isEmpty()) {
                 QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Found new movie to load:" << movieHash;
-                loadMediaFile(movieHash, FILE_TYPE_MOVIE);
+                if (loadMediaFile(movieHash, FILE_TYPE_MOVIE) != E_OK) {
+                    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Movie load failed:" << movieHash;
+                }
             }
         } else {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Found movie tag with empty hash:" << movieElement.toText().data();
@@ -253,8 +257,20 @@ quint8 BlockLoader::loadMediaFile(const QString &hash, FILE_TYPE fileType) {
                 continue;
             }
             
+            QString fileHash = hashCalculator->getFileHash(filePath);
+            
+            if (fileHash != hash) {
+                QFile::remove(filePath);
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "File received. But hash is invalid." << hash;   
+                continue;
+            }
+            
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "File hash check ok. Hash:" << hash;
+            
             Q_ASSERT(hashQuery != NULL);
             hashQuery->addFile(filePath, hash, fileType);
+            
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Media file loaded successfully. Hash:" << hash;
             return E_OK;
         }
         

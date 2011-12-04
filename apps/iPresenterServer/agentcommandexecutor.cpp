@@ -236,7 +236,8 @@ uint8_t AgentCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
         return E_DB_ERROR;
     }
     
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Trying to read media file. Size:" << mediaSize << "; hash:" << hash;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Trying to read media file. Total file size:" << mediaSize <<
+                                                           "; Requested offset:" << cmdData->offset << "; size:" << cmdData->size << "; hash:" << hash;
     
     QFile mediaFile(mediaBasePath + "/" + mediaTypeDir + "/" + hash);    
     
@@ -256,8 +257,14 @@ uint8_t AgentCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
         return E_MEDIA_SIZE_MISMATCH;
     }
     
+    if ((cmdData->offset + cmdData->size) > mediaSize) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Requested size is too big! Size:" << 
+                                                               cmdData->size << "; offset:" << cmdData->offset << "; file size:" << mediaFile.size() << "hash:" << hash;
+        return E_PARAMETERS_INVALID;
+    }
+    
     packetParser.makeHeader(AGENT_GET_MEDIA_DATA);
-    if (packetParser.incPayloadSize(mediaSize) != NetworkProtoParser::E_OK)
+    if (packetParser.incPayloadSize(cmdData->size) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
     
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
@@ -269,8 +276,10 @@ uint8_t AgentCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
     
     totalBytes = 0;
     
-    while (totalBytes < mediaSize) {
-        bytesReaded = mediaFile.read((char *)dataBuf, MEDIA_READ_BLOCK_SIZE);
+    mediaFile.seek(cmdData->offset);
+    
+    while (totalBytes < cmdData->size) {
+        bytesReaded = mediaFile.read((char *)dataBuf, (MEDIA_READ_BLOCK_SIZE > cmdData->size) ? cmdData->size : MEDIA_READ_BLOCK_SIZE);
         
         if (bytesReaded <= 0)
             break;

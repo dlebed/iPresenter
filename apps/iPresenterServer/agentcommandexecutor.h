@@ -30,7 +30,8 @@ public:
         E_UNKNOWN_MEDIA_TYPE    =   0x14,
         E_MEDIA_SIZE_MISMATCH   =   0x15,
         E_FILE_READ_ERROR       =   0x16,
-        E_XML_PARSE_ERROR       =   0x17
+        E_XML_PARSE_ERROR       =   0x17,
+        E_PARAMETERS_INVALID    =   0x18
     };
     
     typedef struct {

@@ -13,7 +13,8 @@ public:
 		LOAD_SUCCESS =				 0x00,
 		LOAD_CONNECTION_FAILED =     0x01,
 		LOAD_NO_SUCH_FILE	   =     0x02,
-		LOAD_ERROR				=	 0x03
+		LOAD_ERROR				=	 0x03,
+        LOAD_FILE_CREATE_FAILED =    0x04
 	};
 	
 	virtual QString getID() const = 0;

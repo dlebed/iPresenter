@@ -40,7 +40,7 @@ quint8 TCPLoader::loadFile(const QString &fileHash, FILE_TYPE fileType, QString 
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Loading file type" << fileType << "with hash" << fileHash;
     
     NetworkProtoParser protoParser;
-    int64_t bytesReaded;
+    int64_t totalBytesReaded = 0;
     uint64_t bytesToRead;
     media_size_t fileSize;
     QTcpSocket socket;
@@ -59,7 +59,43 @@ quint8 TCPLoader::loadFile(const QString &fileHash, FILE_TYPE fileType, QString 
     
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "File size readed from server:" << fileSize << "hash:" << fileHash;
     
+    QFile mediaFile(filePath);
     
+    if (!mediaFile.open(QIODevice::WriteOnly)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to create media file:" << filePath << fileHash;
+        return LOAD_FILE_CREATE_FAILED;
+    }
+    
+    uint8_t *fileDataBuf = new uint8_t[MEDIA_READ_BLOCK_SIZE];
+    Q_ASSERT(fileDataBuf != NULL);
+    
+    while (totalBytesReaded < fileSize) {
+        bytesToRead = ((fileSize - totalBytesReaded) > MEDIA_READ_BLOCK_SIZE) ? MEDIA_READ_BLOCK_SIZE : (fileSize - totalBytesReaded);
+        
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << "Requested" << bytesToRead << "bytes. Total read:" << totalBytesReaded << fileHash;
+        
+        media_size_t bytesReaded;
+        
+        if (!getMediaFileData(&socket, fileHash.toUtf8(), fileType, fileDataBuf, totalBytesReaded, bytesToRead, bytesReaded)) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to fetch media file data:" << filePath << fileHash;
+            delete [] fileDataBuf;
+            mediaFile.remove();
+            return LOAD_ERROR;
+        }
+        
+        if (bytesToRead != bytesReaded) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Readed file size mismatch:" << bytesToRead << bytesToRead;
+            delete [] fileDataBuf;
+            mediaFile.remove();
+            return LOAD_ERROR;
+        }
+
+        mediaFile.write((char *)fileDataBuf, bytesReaded);
+
+        totalBytesReaded += bytesReaded;
+    }
+    
+    delete [] fileDataBuf;
 
     socket.disconnectFromHost();
     if (socket.state() != QAbstractSocket::UnconnectedState)
@@ -160,6 +196,94 @@ bool TCPLoader::getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashD
     
     return true;
 }
+
+bool TCPLoader::getMediaFileData(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, uint8_t *buf, media_size_t offset, media_size_t size, media_size_t &readedSize) {
+    NetworkProtoParser protoParser;
+    uint64_t bytesToRead;
+    int64_t bytesReaded;
+    GetMediaDataCmd getDataCmd;
+    QByteArray dataBuf;
+    uint8_t res;
+    
+    memset(&getDataCmd, 0, sizeof(getDataCmd));
+    
+    protoParser.makeHeader(AGENT_GET_MEDIA_DATA);
+    
+    memcpy(getDataCmd.hash, fileHashData.data(), (fileHashData.size() > AGENT_HASH_LEN) ? AGENT_HASH_LEN : fileHashData.size());
+    getDataCmd.mediaType = fileType;
+    getDataCmd.size = size;
+    getDataCmd.offset = offset;
+    
+    if (protoParser.appendPayloadData((uint8_t *)&getDataCmd, sizeof(getDataCmd)) != NetworkProtoParser::E_OK)
+        return false;
+        
+    if (protoParser.packetData(dataBuf) != NetworkProtoParser::E_OK)
+        return false;
+    
+    if (socket->write(dataBuf) != dataBuf.size())
+        return false;
+    
+    dataBuf.clear();
+    
+    if (!socket->waitForBytesWritten())
+        return false;
+    
+    // Packet written. Waiting for reply
+    
+    protoParser.clear();
+    
+    while ((bytesToRead = protoParser.bytesToReadCount()) > 0) {
+        if (socket->bytesAvailable() <= 0) {
+            if (!socket->waitForReadyRead(readTimeout)) {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Timeout reading header data from socket.";
+                //return false;
+            }
+        }
+        
+        uint8_t *packetBuf = new uint8_t[bytesToRead];
+        Q_ASSERT(packetBuf != NULL);
+        
+        bytesReaded = socket->read((char *)packetBuf, bytesToRead);
+        
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Readed:" << bytesReaded << "To read:" << bytesToRead;
+        
+        if (bytesReaded <= 0) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error reading header data from socket.";
+            delete [] packetBuf;
+            return false;
+        }
+        
+        if ((res = protoParser.bytesReaded(packetBuf, bytesReaded)) != NetworkProtoParser::E_OK) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Error parsing packet:" << res;
+            delete [] packetBuf;
+            return false;
+        }
+        
+        delete [] packetBuf;
+        packetBuf = NULL;
+    }
+    
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Packet readed successfully";
+    
+    packet_size_t payloadSize;
+    
+    if (protoParser.payloadSize(payloadSize) != NetworkProtoParser::E_OK)
+        return false;
+    
+    if (payloadSize > size) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Readed more data than requested!";
+        return false;
+    } else {
+        if (protoParser.payloadData(dataBuf) != NetworkProtoParser::E_OK)
+            return false;
+        
+        readedSize = payloadSize;
+        memcpy(buf, dataBuf.data(), payloadSize);
+    }
+    
+    return true;
+}
+
 
 QString TCPLoader::description() const {
 #ifdef REVISION

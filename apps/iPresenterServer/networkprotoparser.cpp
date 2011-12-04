@@ -28,7 +28,7 @@ packet_size_t NetworkProtoParser::bytesToReadCount() const {
     return 0;        
 }
 
-uint8_t NetworkProtoParser::bytesReaded(uint8_t *data, uint8_t size) {
+uint8_t NetworkProtoParser::bytesReaded(uint8_t *data, packet_size_t size) {
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Data readed:" << size << "bytes";
     
     if (size > maxPacketSizeValue)
