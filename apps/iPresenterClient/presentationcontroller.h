@@ -41,6 +41,8 @@ protected slots:
     
     void timePeriodCheck();
 
+    void newScheduleLoadedHandler(const QString &scheduleDocString);
+
 protected:    
     
 private:

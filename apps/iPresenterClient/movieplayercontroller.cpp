@@ -1,18 +1,32 @@
 #include "movieplayercontroller.h"
 
 #include <movies/mplayermovieplayer.h>
+#include <hashquery/hashqueryfactory.h>
 
 MoviePlayerController::MoviePlayerController(QObject *parent) :
-    QObject(parent), moviePlayer(NULL)
+    QObject(parent), moviePlayer(NULL), hashQuery(NULL)
 {
+    hashQuery = HashQueryFactory::hashQuery();
+    Q_ASSERT(hashQuery != NULL);
+
     // Stub
     moviePlayer = new MPlayerMoviePlayer(this);
     Q_ASSERT(moviePlayer != NULL);
     connect(moviePlayer, SIGNAL(moviePlayFinished(QString)), this, SLOT(moviePlayerFinishedHandler()));
+
+
+}
+
+MoviePlayerController::~MoviePlayerController() {
+
+    if (hashQuery != NULL) {
+        delete hashQuery;
+    }
+
 }
 
 void MoviePlayerController::startMovie(const QString &movieHash) {
-    QString movieFilename = hashQuery.lookupFilePathByHash(movieHash, FILE_TYPE_MOVIE);
+    QString movieFilename = hashQuery->lookupFilePathByHash(movieHash, FILE_TYPE_MOVIE);
     
     if (!movieFilename.isEmpty()) {
         moviePlayer->play(movieFilename);

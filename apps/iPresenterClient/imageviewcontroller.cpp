@@ -6,13 +6,19 @@
 
 #include <qlogger.h>
 
+#include <hashquery/hashqueryfactory.h>
+
 ImageViewController::ImageViewController(ImageView * imageView) :
+    hashQuery(NULL),
     imageView(imageView), 
     blockLoopCount(0), loopCounter(0),
     isFirstBlockImageElement(true)
 {
     Q_ASSERT(imageView != NULL);
    
+    hashQuery = HashQueryFactory::hashQuery();
+    Q_ASSERT(hashQuery != NULL);
+
     connect(this, SIGNAL(showImage(QString, QString)), imageView, SLOT(showImage(QString, QString)), Qt::QueuedConnection);
     
     // Show initial image
@@ -27,6 +33,10 @@ ImageViewController::ImageViewController(ImageView * imageView) :
 
 ImageViewController::~ImageViewController() {
     
+    if (hashQuery != NULL) {
+        delete hashQuery;
+    }
+
 }
 
 void ImageViewController::testLoad() {
@@ -83,7 +93,7 @@ void ImageViewController::nextImage() {
             return;
         }
         
-        imageFilename = hashQuery.lookupFilePathByHash(currentImageElement.attribute("hash"), FILE_TYPE_IMAGE);
+        imageFilename = hashQuery->lookupFilePathByHash(currentImageElement.attribute("hash"), FILE_TYPE_IMAGE);
         imageHash = currentImageElement.attribute("hash");
     }
     

@@ -5,17 +5,18 @@
 #include <QSqlError>
 #include <QSqlDatabase>
 #include <QSettings>
+#include <QMutex>
 
 #include "ihashquery.h"
 #include "hash/ihashcalculator.h"
 
-#define HASH_QUERY_DB_NAME      "HashQuery"
+#define HASH_QUERY_DB_NAME      QString("HashQuery")
 
-class HashQuery : public IHashQuery {
+class SQLDBHashQuery : public IHashQuery {
 public:
     
-    HashQuery(const QString &hashName = "sha256");
-    virtual ~HashQuery();
+    SQLDBHashQuery(const QString &hashName = "sha256");
+    virtual ~SQLDBHashQuery();
     
     void addFilePathWithHash(const QString &filePath, FILE_TYPE fileType);
     void addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType);
@@ -24,10 +25,13 @@ public:
 protected:
     QString fileTypeStr(FILE_TYPE type);
     
+    QString currentThreadID();
+
 private:
     QSettings settings;
     QSqlDatabase db;
-    
+    QMutex hashQueryMutex;
+
     IHashCalculator * hashCalculator;
     
 };

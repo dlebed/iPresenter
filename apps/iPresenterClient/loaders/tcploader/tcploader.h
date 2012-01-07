@@ -41,10 +41,7 @@ public slots:
 	
 	quint8 cleanTempDir();
 	
-	quint8 scheduleUpdateCheck();
-    
-signals:
-    void scheduleUpdateAvailable(const QString &scheduleDocument);
+	quint8 scheduleUpdateCheck(QString & scheduleDocument);
     
 protected:
     bool getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, media_size_t &fileSize);

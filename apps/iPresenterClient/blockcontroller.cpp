@@ -16,7 +16,8 @@ BlockController::BlockController(ImageViewController *imageViewController, Movie
     blockLoader->start(QThread::IdlePriority);
     connect(blockLoader, SIGNAL(loadingInterrupted()), this, SLOT(imageBlockEnded()), Qt::QueuedConnection);
     connect(blockLoader, SIGNAL(blockLoaded(QDomDocument)), this, SLOT(blockLoadedHandler(QDomDocument)), Qt::QueuedConnection);
-    
+    connect(blockLoader, SIGNAL(newScheduleLoaded(QString)), this, SIGNAL(newScheduleLoaded(QString)), Qt::QueuedConnection);
+
     connect(imageViewController, SIGNAL(imageBlockEnded()), this, SLOT(imageBlockEnded()));
     connect(this, SIGNAL(showMovie(QString)), moviePlayerController, SLOT(startMovie(QString)));
     connect(this, SIGNAL(showImageBlock(QDomDocument)), imageViewController, SLOT(showImageBlock(QDomDocument)));
