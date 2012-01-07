@@ -1,24 +1,28 @@
-#include "hashquery.h"
+#include "sqldbhashquery.h"
 #include <QApplication>
 #include <QCryptographicHash>
 #include <QByteArray>
 #include <QFile>
+#include <QMutexLocker>
+#include <QThread>
 
 #include <qlogger.h>
 
 #include "hash/hashcalculatorfactory.h"
 
-HashQuery::HashQuery(const QString &hashName) :
+SQLDBHashQuery::SQLDBHashQuery(const QString &hashName) :
     hashCalculator(NULL)
 {
     QString dbPath = settings.value("hash/db_path", "/etc/ads/hash.sqlite").toString();
     
-    if (!QSqlDatabase::contains(HASH_QUERY_DB_NAME)) {
-        db = QSqlDatabase::addDatabase("QSQLITE", HASH_QUERY_DB_NAME);
+    if (!QSqlDatabase::contains(HASH_QUERY_DB_NAME + currentThreadID())) {
+        db = QSqlDatabase::addDatabase("QSQLITE", HASH_QUERY_DB_NAME + currentThreadID());
         db.setDatabaseName(dbPath);
     } else {
-        db = QSqlDatabase::database(HASH_QUERY_DB_NAME);
+        db = QSqlDatabase::database(HASH_QUERY_DB_NAME + currentThreadID());
     }
+
+    QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Hash DB created connection" << HASH_QUERY_DB_NAME + currentThreadID();
 
     if (!QFile::exists(dbPath)) {
         QLogger(QLogger::INFO_DATABASE, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Hash DB file does not exists:" << dbPath;
@@ -41,7 +45,7 @@ HashQuery::HashQuery(const QString &hashName) :
     }
 }
 
-HashQuery::~HashQuery() {
+SQLDBHashQuery::~SQLDBHashQuery() {
     if (hashCalculator != NULL) {
         delete hashCalculator;
         hashCalculator = NULL;
@@ -51,7 +55,7 @@ HashQuery::~HashQuery() {
 }
 
 
-void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType) {
+void SQLDBHashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType) {
     if (!QFile::exists(filePath)) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Attempt to add hash for non-existing file:" <<
                                                                 filePath;
@@ -63,6 +67,8 @@ void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType)
     Q_ASSERT(hashCalculator != NULL);
     QString fileHash = hashCalculator->getFileHash(filePath);
     
+    QMutexLocker ml(&hashQueryMutex);
+
     if (!fileHash.isEmpty()) {        
         ok = query.exec("INSERT INTO " + fileTypeStr(fileType) + " (hash, filepath) VALUES ('" + fileHash + "', '" + filePath + "');");
         
@@ -79,7 +85,9 @@ void HashQuery::addFilePathWithHash(const QString &filePath, FILE_TYPE fileType)
     }
 }
 
-void HashQuery::addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType) {
+void SQLDBHashQuery::addFile(const QString &filePath, const QString &fileHash, FILE_TYPE fileType) {
+    QMutexLocker ml(&hashQueryMutex);
+
     if (!QFile::exists(filePath)) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR)  << "Attempt to add hash for non-existing file:" <<
                                                                 filePath;
@@ -105,7 +113,8 @@ void HashQuery::addFile(const QString &filePath, const QString &fileHash, FILE_T
     }
 }
 
-QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileType) {
+QString SQLDBHashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileType) {
+    QMutexLocker ml(&hashQueryMutex);
     QString filePath;
     
     QSqlQuery query;
@@ -124,7 +133,7 @@ QString HashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE fileT
     return filePath;
 }
 
-QString HashQuery::fileTypeStr(FILE_TYPE type) {
+QString SQLDBHashQuery::fileTypeStr(FILE_TYPE type) {
     switch (type) {
     case FILE_TYPE_IMAGE:
         return "images";
@@ -133,4 +142,8 @@ QString HashQuery::fileTypeStr(FILE_TYPE type) {
     }
     
     return QString();
+}
+
+QString SQLDBHashQuery::currentThreadID() {
+	return QString::number((qptrdiff)QThread::currentThread(), 16).toUpper();
 }

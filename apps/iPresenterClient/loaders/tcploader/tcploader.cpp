@@ -109,10 +109,10 @@ quint8 TCPLoader::cleanTempDir() {
 	return LOAD_SUCCESS;
 }
 
-quint8 TCPLoader::scheduleUpdateCheck() {
+quint8 TCPLoader::scheduleUpdateCheck(QString & scheduleDocument) {
 	QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << "TCP Loader: Schedule update check";
 	
-	return LOAD_SUCCESS;
+	return LOAD_NO_UPDATE_AVALIABLE;
 }
 
 bool TCPLoader::getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, media_size_t &fileSize) {
@@ -286,11 +286,7 @@ bool TCPLoader::getMediaFileData(QTcpSocket *socket, const QByteArray &fileHashD
 
 
 QString TCPLoader::description() const {
-#ifdef REVISION
-	return "Content loader for TCP." " Revision: " REVISION ".";
-#else
 	return "Content loader for TCP.";
-#endif
 }
 
 Q_EXPORT_PLUGIN2(tcploader, TCPLoader)

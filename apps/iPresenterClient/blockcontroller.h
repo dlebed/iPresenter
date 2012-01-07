@@ -5,9 +5,9 @@
 #include <QDomDocument>
 #include <QDomElement>
 
-#include "imageviewcontroller.h"
+#include <imageviewcontroller.h>
 #include <movieplayercontroller.h>
-#include "blockloader.h"
+#include <blockloader.h>
 
 class BlockController : public QObject
 {    
@@ -45,6 +45,8 @@ signals:
     void blockEnded();
     void blockStopped();
     void newBlockLoaded();
+
+    void newScheduleLoaded(const QString &scheduleDocString);
     
     // Control signals
     void showImageBlock(const QDomDocument &blockDocument);

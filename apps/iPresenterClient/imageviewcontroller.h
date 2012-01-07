@@ -8,7 +8,7 @@
 #include <QDomElement>
 
 #include <imageview.h>
-#include <hashquery.h>
+#include <hashquery/ihashquery.h>
 
 class ImageViewController : public QObject
 {
@@ -33,7 +33,7 @@ protected slots:
     
 private:
     QTimer imageTimer;
-    HashQuery hashQuery;
+    IHashQuery *hashQuery;
     
     ImageView * imageView;
     QDomElement currentImageElement;

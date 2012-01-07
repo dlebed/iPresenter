@@ -16,7 +16,6 @@ TEMPLATE = app
 SOURCES += main.cpp \
     imageview.cpp \
     imageviewcontroller.cpp \
-    hashquery.cpp \
     movies/mplayermovieplayer.cpp \
     hash/md5hashcalculator.cpp \
     hash/hashcalculatorfactory.cpp \
@@ -26,15 +25,17 @@ SOURCES += main.cpp \
     blockloader.cpp \
     hash/sha256hashcalculator.cpp \
     movieplayercontroller.cpp \
-    presentationparser.cpp
+    presentationparser.cpp \
+    hashquery/sqldbhashquery.cpp \
+    hashquery/hashqueryfactory.cpp \
+    backgroundscheduleloader.cpp
 
 HEADERS += \
     imageview.h \
     imageviewcontroller.h \
-    hashquery.h \
     movies/imoviemplayer.h \
     movies/mplayermovieplayer.h \
-    ihashquery.h \
+    hashquery/ihashquery.h \
     hash/ihashcalculator.h \
     hash/md5hashcalculator.h \
     hash/hashcalculatorfactory.h \
@@ -47,7 +48,10 @@ HEADERS += \
     loaders/iblockloader.h \
     typedefs.h \
     movieplayercontroller.h \
-    presentationparser.h
+    presentationparser.h \
+    hashquery/sqldbhashquery.h \
+    hashquery/hashqueryfactory.h \
+    backgroundscheduleloader.h
 
 RESOURCES += \
     icons.qrc

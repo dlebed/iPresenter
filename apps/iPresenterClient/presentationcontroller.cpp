@@ -40,7 +40,8 @@ void PresentationController::initObjects() {
     connect(this, SIGNAL(initDone()), this, SLOT(loadInitialBlock()));
     connect(blockController, SIGNAL(newBlockLoaded()), this, SLOT(blockLoadedHandler()));
     connect(blockController, SIGNAL(blockEnded()), this, SLOT(blockEndedHandler()));
-    
+    connect(blockController, SIGNAL(newScheduleLoaded(QString)), this, SLOT(newScheduleLoadedHandler(QString)));
+
     timePeriodCheckTimer.setSingleShot(false);
     timePeriodCheckTimer.setInterval(settings.value("timevals/time_period_check_interval", 
                                                     DEFAULT_TIME_PERIOD_CHECK_INTERVAL).toUInt() * 1000);
@@ -101,7 +102,7 @@ void PresentationController::loadInitialBlock() {
     QString loadError;
     
     if (!presentation.setContent(&filePresent, false, &loadError)) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Cannot set block file:" << loadError;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Cannot parse presentation file:" << loadError;
         filePresent.close();
         return;
     }
@@ -154,4 +155,19 @@ void PresentationController::timePeriodCheck() {
             imageViewController->showEmptyBlock();
         }
     }
+}
+
+void PresentationController::newScheduleLoadedHandler(const QString &scheduleDocString) {
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Trying to set up new schedule";
+    QDomDocument scheduleDoc;
+    QString parseError;
+
+    if (!scheduleDoc.setContent(scheduleDocString, false, &parseError)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Cannot parse schedule file:" << parseError;
+        return;
+    }
+
+    quint8 res = presentationParser->parsePresentation(scheduleDoc);
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Presentation parsed. Choosed:" << hex << res;
 }

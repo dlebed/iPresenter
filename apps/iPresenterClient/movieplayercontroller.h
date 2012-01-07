@@ -5,13 +5,15 @@
 #include <QSettings>
 
 #include <movies/imoviemplayer.h>
-#include <hashquery.h>
+#include <hashquery/ihashquery.h>
 
 class MoviePlayerController : public QObject
 {
     Q_OBJECT
 public:
     explicit MoviePlayerController(QObject *parent = 0);
+
+    ~MoviePlayerController();
 
 public slots:
     void startMovie(const QString &movieHash);
@@ -27,7 +29,7 @@ signals:
 private:
     QSettings settings;
     IMoviePlayer * moviePlayer;
-    HashQuery hashQuery;
+    IHashQuery *hashQuery;
 
 
 };

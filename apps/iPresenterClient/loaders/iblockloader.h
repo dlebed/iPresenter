@@ -14,7 +14,8 @@ public:
 		LOAD_CONNECTION_FAILED =     0x01,
 		LOAD_NO_SUCH_FILE	   =     0x02,
 		LOAD_ERROR				=	 0x03,
-        LOAD_FILE_CREATE_FAILED =    0x04
+        LOAD_FILE_CREATE_FAILED =    0x04,
+        LOAD_NO_UPDATE_AVALIABLE =   0x05
 	};
 	
 	virtual QString getID() const = 0;
@@ -29,10 +30,7 @@ public slots:
 	
 	virtual quint8 cleanTempDir() = 0;
 	
-	virtual quint8 scheduleUpdateCheck() = 0;
-	
-signals:
-	void scheduleUpdateAvailable(const QString & scheduleDocument);
+	virtual quint8 scheduleUpdateCheck(QString & scheduleDocument) = 0;
 	
 };
 

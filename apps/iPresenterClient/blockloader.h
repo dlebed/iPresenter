@@ -7,10 +7,12 @@
 #include <QHash>
 #include <QTimer>
 
-#include "hashquery.h"
+#include <hashquery/ihashquery.h>
 
 #include <hash/ihashcalculator.h>
 #include <loaders/iblockloader.h>
+
+#include <backgroundscheduleloader.h>
 
 class BlockLoader : public QThread
 {
@@ -38,24 +40,30 @@ public slots:
     void loadBlock(const QDomDocument &blockDocument);
 
     void checkScheduleUpdate(schedule_version_t currentScheduleVersion);
-    void updateSchedule(const QString &scheduleDocument);
     
 signals:
     
     void loadingInterrupted();
     void blockLoaded(const QDomDocument &blockDocument);
     void blockLoadingError(quint8 error);
+
+    void newScheduleLoaded(const QString &scheduleDocString);
   
+protected slots:
+    void scheduleUpdateLoaded();
+    void scheduleUpdateFailed();
+
 protected:
     quint8 loadMediaFile(const QString &hash, FILE_TYPE fileType);
     
 private:
-    bool isLoading;
+    bool isLoading, isExiting;
     QSettings settings;
     QTimer scheduleUpdateCheckTimer;
-    HashQuery *hashQuery;
+    IHashQuery *hashQuery;
     QString mediaBasePath;
     
+    BackgroundScheduleLoader *backgroundScheduleLoader;
     IHashCalculator * hashCalculator;
     QHash<QString, IBlockLoader *> blockLoadersHash;
 };

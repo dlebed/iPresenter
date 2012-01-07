@@ -9,11 +9,13 @@
 
 #include <qlogger.h>
 
-#include "hash/hashcalculatorfactory.h"
+#include <hash/hashcalculatorfactory.h>
+#include <hashquery/hashqueryfactory.h>
 
 BlockLoader::BlockLoader(const QString &hashType, QObject *parent) :
     QThread(parent),
-    isLoading(false), hashQuery(NULL), hashCalculator(NULL)
+    isLoading(false), isExiting(false), hashQuery(NULL), hashCalculator(NULL),
+    backgroundScheduleLoader(NULL)
 {
 	if (QMetaType::type("QDomDocument") == 0)
         qRegisterMetaType<QDomDocument>("QDomDocument");
@@ -28,6 +30,8 @@ BlockLoader::BlockLoader(const QString &hashType, QObject *parent) :
     scheduleUpdateCheckTimer.setSingleShot(false);
     scheduleUpdateCheckTimer.setInterval(settings.value("loaders/update_check_interval", 180).toUInt() * 1000);
     
+
+
 }
 
 BlockLoader::~BlockLoader() {
@@ -35,7 +39,6 @@ BlockLoader::~BlockLoader() {
     while (blockLoader != blockLoadersHash.constEnd()) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Removing content loader plugin ID:" << blockLoader.key();
         disconnect(&scheduleUpdateCheckTimer, SIGNAL(timeout()), blockLoader.value(), SLOT(scheduleUpdateCheck()));
-        disconnect(blockLoader.value(), SIGNAL(scheduleUpdateAvailable(QString)), this, SLOT(updateSchedule(QString)));
         delete blockLoader.value();
         ++blockLoader;
     }
@@ -51,10 +54,12 @@ void BlockLoader::run() {
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "BlockLoader thread starting:" << hex << currentThreadId();
     
     if (hashQuery == NULL)
-        hashQuery = new HashQuery();
+        hashQuery = HashQueryFactory::hashQuery();
     
     Q_ASSERT(hashQuery != NULL);
     
+    isExiting = false;
+
     initLoaders();
     
     exec();
@@ -96,7 +101,6 @@ quint8 BlockLoader::initLoaders() {
                             "; Description:" << blockLoader->description();
 
                     blockLoadersHash[blockLoader->getID()] = blockLoader;
-                    connect(blockLoader, SIGNAL(scheduleUpdateAvailable(QString)), this, SLOT(updateSchedule(QString)));
                     connect(&scheduleUpdateCheckTimer, SIGNAL(timeout()), blockLoader, SLOT(scheduleUpdateCheck()));
                 } else {
                     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ <<
@@ -119,7 +123,7 @@ quint8 BlockLoader::initLoaders() {
     
     if (blockLoadersHash.isEmpty() == 0)
         return E_NO_PLUGINS_FOUND;
-    
+
     return E_OK;
 }
 
@@ -134,7 +138,11 @@ void BlockLoader::stop() {
 
 void BlockLoader::interruptLoading() {
     
-    
+    if (isLoading) {
+        isExiting = true;
+    } else {
+        emit loadingInterrupted();
+    }
     
 }
 
@@ -156,11 +164,18 @@ void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
     
     QDomElement imagesGroupElement = blockElements.firstChildElement("images");
     
+    isLoading = true;
+
     while (!imagesGroupElement.isNull()) {
     
         QDomElement imageElement = imagesGroupElement.firstChildElement("image");
         
         while (!imageElement.isNull()) {
+            if (isExiting) {
+                emit loadingInterrupted();
+                return;
+            }
+
             QString imageHash = imageElement.attribute("hash");
             
             if (!imageHash.isEmpty()) {
@@ -186,6 +201,11 @@ void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
     QDomElement movieElement = blockElements.firstChildElement("movie");
     
     while (!movieElement.isNull()) {
+        if (isExiting) {
+            emit loadingInterrupted();
+            return;
+        }
+
         QString movieHash = movieElement.attribute("hash");
         
         if (!movieHash.isEmpty()) {
@@ -205,6 +225,8 @@ void BlockLoader::loadBlock(const QDomDocument &blockDocument) {
     
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "All media files is loaded.";
     
+    isLoading = false;
+
     // stub
     emit blockLoaded(blockDocument);
 }
@@ -214,11 +236,59 @@ void BlockLoader::checkScheduleUpdate(schedule_version_t currentScheduleVersion)
         return;
     }
     
-    
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to check schedule update,,,";
+
+    QHash<QString, IBlockLoader *>::const_iterator i = blockLoadersHash.constBegin();
+    QString scheduleDocument;
+
+    while (i != blockLoadersHash.constEnd()) {
+        if (i.value()->scheduleUpdateCheck(scheduleDocument) == IBlockLoader::LOAD_SUCCESS) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Schedule update found by loader" << i.key() << "! Doc:" << scheduleDocument;
+            break;
+        }
+
+        ++i;
+    }
+
+    if (scheduleDocument.isEmpty()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "No schedule update found.";
+        return;
+    }
+
+    // Starting background schedule load thread
+    scheduleUpdateCheckTimer.stop();
+
+    backgroundScheduleLoader = new BackgroundScheduleLoader(scheduleDocument, i.value());
+    Q_ASSERT(backgroundScheduleLoader != NULL);
+
+    connect(backgroundScheduleLoader, SIGNAL(scheduleLoaded()), this, SLOT(scheduleUpdateLoaded()), Qt::QueuedConnection);
+    connect(backgroundScheduleLoader, SIGNAL(scheduleLoadFailed()), this, SLOT(scheduleUpdateFailed()), Qt::QueuedConnection);
+
+    backgroundScheduleLoader->start(QThread::LowPriority);
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Background schedule load thread started";
 }
 
-void BlockLoader::updateSchedule(const QString & scheduleDocument) {
-    
+void BlockLoader::scheduleUpdateLoaded() {
+    QString scheduleDocString;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "New schedule data successfully loaded";
+    backgroundScheduleLoader->stop();
+    scheduleDocString = backgroundScheduleLoader->getScheduleDocString();
+    delete backgroundScheduleLoader;
+    backgroundScheduleLoader = NULL;
+
+    // Replace old schedule with new one
+    emit newScheduleLoaded(scheduleDocString);
+
+    scheduleUpdateCheckTimer.start();
+}
+
+void BlockLoader::scheduleUpdateFailed() {
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error loading schedule data";
+    backgroundScheduleLoader->stop();
+    delete backgroundScheduleLoader;
+    backgroundScheduleLoader = NULL;
+    scheduleUpdateCheckTimer.start();
 }
 
 quint8 BlockLoader::loadMediaFile(const QString &hash, FILE_TYPE fileType) {
