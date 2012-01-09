@@ -109,6 +109,7 @@ void AgentsServerTask::packetsReadLoop(QTcpSocket *tcpSocket) {
         if (res != AgentCommandExecutor::E_OK) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Command execution error:" << res << ". Agent ip:" << 
                                                                   socketAddress;
+            break;
         }
         
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Command executed. Reading next... Agent ip:" << 

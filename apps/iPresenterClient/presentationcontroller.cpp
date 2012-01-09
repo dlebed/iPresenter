@@ -214,5 +214,17 @@ void PresentationController::newScheduleLoadedHandler(const QString &scheduleDoc
 
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Presentation file saved to disc";
 
+    if (res == PresentationParser::E_OK) {
+        QDomDocument nextBlock = presentationParser->nextBlock();
+
+        if (!nextBlock.isNull()) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to show block" << nextBlock.toString();
+            emit newBlockXml(nextBlock);
+        } else {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Nothing to show";
+            imageViewController->showEmptyBlock();
+        }
+    }
+
     newPresentationCheckTimer.start();
 }

@@ -102,6 +102,8 @@ void BackgroundMediaLoader::presentationDataLoadLoop() {
         }
 
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Block" << blockElement.attribute("id") << "successfully loaded";
+
+        blockElement = blockElement.nextSiblingElement("block");
     }
 
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "All blocks successfully loaded!";
