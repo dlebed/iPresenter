@@ -60,7 +60,7 @@ uint8_t AgentCommandExecutor::executeCommand(const NetworkProtoParser &protoPars
         break;
        
     case AGENT_GET_SCHEDULE_DATA:
-        return getScheduleVersion(tcpSocket, agentID);
+        return getScheduleData(tcpSocket, agentID);
         break;
         
     case AGENT_GET_MEDIA_SIZE:
@@ -139,13 +139,13 @@ uint8_t AgentCommandExecutor::getScheduleVersion(QTcpSocket *tcpSocket, const QS
 uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QString &agentID) {
     uint8_t res;
     schedule_version_t scheduleVersion = 0;
-    QString scheduleData;
+    QString presentationData;
     NetworkProtoParser packetParser;
     QByteArray packetData;
-    QDomDocument scheduleDocument;
+    QDomDocument scheduleDocument, presentationDocument;
     Q_ASSERT(dbProxy != NULL);
     
-    res = dbProxy->getScheduleData(agentID, scheduleData);
+    res = dbProxy->getScheduleData(agentID, presentationData);
     
     if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
         return E_UNKNOWN_AGENT_ID;
@@ -159,18 +159,23 @@ uint8_t AgentCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QStri
     else if (res != IDBProxy::E_OK)
         return E_DB_ERROR;
     
-    if (!scheduleDocument.setContent(scheduleData))
+    if (!scheduleDocument.setContent(presentationData))
         return E_XML_PARSE_ERROR;
     
-    if ((res = fillScheduleBlocks(scheduleDocument)) != E_OK)
+    QDomElement presentationElement = presentationDocument.createElement("presentation");
+    presentationDocument.appendChild(presentationElement);
+
+    presentationElement.appendChild(scheduleDocument.documentElement());
+
+    if ((res = fillScheduleBlocks(presentationDocument)) != E_OK)
         return res;
+
+    presentationElement.setAttribute("version", scheduleVersion);
     
-    scheduleDocument.documentElement().setAttribute("version", scheduleVersion);    
-    
-    scheduleData = scheduleDocument.toString();
+    presentationData = presentationDocument.toString();
     
     packetParser.makeHeader(AGENT_GET_SCHEDULE_DATA);
-    if (packetParser.appendPayloadData(scheduleData.toUtf8()) != NetworkProtoParser::E_OK)
+    if (packetParser.appendPayloadData(presentationData.toUtf8()) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
     
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
@@ -308,8 +313,8 @@ uint8_t AgentCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
     return E_OK;
 }
 
-uint8_t AgentCommandExecutor::fillScheduleBlocks(QDomDocument &scheduleDocument) {
-    QDomNodeList blockNodes = scheduleDocument.elementsByTagName("block");
+uint8_t AgentCommandExecutor::fillScheduleBlocks(QDomDocument &presentationDocument) {
+    QDomNodeList blockNodes = presentationDocument.elementsByTagName("block");
     QSet<QString> blockIDsList;
     
     //! Generating used block set
@@ -323,8 +328,8 @@ uint8_t AgentCommandExecutor::fillScheduleBlocks(QDomDocument &scheduleDocument)
         }
     }
     
-    QDomElement blocksElement = scheduleDocument.createElement("blocks");
-    scheduleDocument.documentElement().appendChild(blocksElement);
+    QDomElement blocksElement = presentationDocument.createElement("blocks");
+    presentationDocument.documentElement().appendChild(blocksElement);
     
     foreach (const QString &blockID, blockIDsList) {
         QString blockData;

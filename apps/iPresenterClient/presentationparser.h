@@ -7,6 +7,7 @@
 #include <QList>
 #include <QMutex>
 
+#include <typedefs.h>
 
 class PresentationParser : public QObject
 {
@@ -28,6 +29,8 @@ public:
     
     QDomDocument nextBlock();
     
+    schedule_version_t presentationVersion() const;
+
 signals:
     void presentationParsed();
     void newTimePeriodFound();

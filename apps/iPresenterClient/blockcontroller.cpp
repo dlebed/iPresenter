@@ -11,6 +11,9 @@ BlockController::BlockController(ImageViewController *imageViewController, Movie
     Q_ASSERT(imageViewController != NULL);
     Q_ASSERT(moviePlayerController != NULL);
     
+    if (QMetaType::type("schedule_version_t") == 0)
+        qRegisterMetaType<schedule_version_t>("schedule_version_t");
+
     blockLoader = new BlockLoader();
     Q_ASSERT(blockLoader != NULL);
     blockLoader->start(QThread::IdlePriority);
@@ -188,4 +191,9 @@ void BlockController::nextPresentationItem() {
         currentState = STATE_PLAYING_MOVIE;
         emit showMovie(currentPresentationElement.attribute("hash"));
     }
+}
+
+void BlockController::checkScheduleUpdate(schedule_version_t currentScheduleVersion) {
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Checking for a new version of presentation...";
+    QMetaObject::invokeMethod(blockLoader, "checkScheduleUpdate", Qt::QueuedConnection, Q_ARG(schedule_version_t, currentScheduleVersion));
 }

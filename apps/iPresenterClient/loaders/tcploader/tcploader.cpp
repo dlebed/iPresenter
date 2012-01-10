@@ -11,6 +11,8 @@
 #define DEFAULT_READ_TIMEOUT        (1000 * 120)
 #define MEDIA_READ_BLOCK_SIZE       (128 * 1024)
 
+#define AGENT_ID_LEN                128
+
 TCPLoader::TCPLoader():
     serverPort(5115), readTimeout(DEFAULT_READ_TIMEOUT)
 {
@@ -25,6 +27,8 @@ TCPLoader::TCPLoader():
     tempDir = settings.value("loaders/tcploader/tmpdir", "/tmp").toString();
     mediaBasePath = settings.value("storage/media_base_path", "/var/media").toString();
     readTimeout = settings.value("network/read_timeout", DEFAULT_READ_TIMEOUT).toUInt();
+
+    agentID = settings.value("ids/agent_id", "0000000000").toString();
 }
 
 TCPLoader::~TCPLoader() {
@@ -109,10 +113,56 @@ quint8 TCPLoader::cleanTempDir() {
 	return LOAD_SUCCESS;
 }
 
-quint8 TCPLoader::scheduleUpdateCheck(QString & scheduleDocument) {
-	QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << "TCP Loader: Schedule update check";
-	
-	return LOAD_NO_UPDATE_AVALIABLE;
+quint8 TCPLoader::scheduleUpdateCheck(schedule_version_t currentScheduleVersion, QString & scheduleDocument) {
+	QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "TCP Loader: Schedule update check";
+
+    QTcpSocket socket;
+
+    socket.connectToHost(serverHost, serverPort);
+
+    if (!socket.waitForConnected(readTimeout)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Connection to server timeout";
+        return LOAD_CONNECTION_FAILED;
+    }
+
+    schedule_version_t serverScheduleVersion = 0;
+
+    if (!getScheduleVersion(&socket, serverScheduleVersion)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unable to get current schedule version from server";
+        return LOAD_CMD_FAILURE;
+    }
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Schedule version returned by server:" << serverScheduleVersion;
+
+    if (currentScheduleVersion >= serverScheduleVersion) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "There is no new version of schedule on server";
+        socket.disconnectFromHost();
+        if (socket.state() != QAbstractSocket::UnconnectedState)
+            socket.waitForDisconnected();
+        return LOAD_NO_UPDATE_AVALIABLE;
+    }
+
+    // New version of schedule exist
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Found new version of schedule on server:" << serverScheduleVersion;
+
+    if (!getScheduleData(&socket, scheduleDocument)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unable to get current schedule data from server";
+        return LOAD_CMD_FAILURE;
+    }
+
+    if (scheduleDocument.isEmpty()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Received empty schedule data from server";
+        return LOAD_CMD_FAILURE;
+    }
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Schedule data successfully fetched from server";
+
+    socket.disconnectFromHost();
+    if (socket.state() != QAbstractSocket::UnconnectedState)
+        socket.waitForDisconnected();
+
+    return LOAD_SUCCESS;
 }
 
 bool TCPLoader::getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, media_size_t &fileSize) {
@@ -284,6 +334,162 @@ bool TCPLoader::getMediaFileData(QTcpSocket *socket, const QByteArray &fileHashD
     return true;
 }
 
+bool TCPLoader::getScheduleVersion(QTcpSocket *socket, schedule_version_t &scheduleVersion) {
+    NetworkProtoParser protoParser;
+    uint64_t bytesToRead;
+    int64_t bytesReaded;
+    QByteArray dataBuf;
+    QByteArray agentIDData = agentID.toUtf8();
+    uint8_t res;
+
+    agentIDData.truncate(AGENT_ID_LEN);
+
+    protoParser.makeHeader(AGENT_GET_SCHEDULE_VERSION);
+
+    if (protoParser.appendPayloadData((uint8_t *)agentIDData.data(), agentIDData.size()) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (protoParser.packetData(dataBuf) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (socket->write(dataBuf) != dataBuf.size())
+        return false;
+
+    dataBuf.clear();
+
+    if (!socket->waitForBytesWritten())
+        return false;
+
+    // Packet written. Waiting for reply
+
+    protoParser.clear();
+
+    while ((bytesToRead = protoParser.bytesToReadCount()) > 0) {
+        if (socket->bytesAvailable() <= 0) {
+            if (!socket->waitForReadyRead(readTimeout)) {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Timeout reading header data from socket.";
+                //return false;
+            }
+        }
+
+        uint8_t *packetBuf = new uint8_t[bytesToRead];
+        Q_ASSERT(packetBuf != NULL);
+
+        bytesReaded = socket->read((char *)packetBuf, bytesToRead);
+
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Readed:" << bytesReaded << "To read:" << bytesToRead;
+
+        if (bytesReaded <= 0) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error reading header data from socket.";
+            delete [] packetBuf;
+            return false;
+        }
+
+        if ((res = protoParser.bytesReaded(packetBuf, bytesReaded)) != NetworkProtoParser::E_OK) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Error parsing packet:" << res;
+            delete [] packetBuf;
+            return false;
+        }
+
+        delete [] packetBuf;
+        packetBuf = NULL;
+    }
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Packet readed successfully";
+
+    packet_size_t payloadSize;
+
+    if (protoParser.payloadSize(payloadSize) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (protoParser.payloadData(dataBuf) != NetworkProtoParser::E_OK)
+        return false;
+
+    scheduleVersion = 0;
+    memcpy(&scheduleVersion, dataBuf.data(), (sizeof(scheduleVersion) <= payloadSize) ? sizeof(scheduleVersion) : payloadSize);
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Server returned schedule version:" << scheduleVersion;
+
+    return true;
+}
+
+bool TCPLoader::getScheduleData(QTcpSocket *socket, QString &scheduleData) {
+    NetworkProtoParser protoParser;
+    uint64_t bytesToRead;
+    int64_t bytesReaded;
+    QByteArray dataBuf;
+    QByteArray agentIDData = agentID.toUtf8();
+    uint8_t res;
+
+    agentIDData.truncate(AGENT_ID_LEN);
+
+    protoParser.makeHeader(AGENT_GET_SCHEDULE_DATA);
+
+    if (protoParser.appendPayloadData((uint8_t *)agentIDData.data(), agentIDData.size()) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (protoParser.packetData(dataBuf) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (socket->write(dataBuf) != dataBuf.size())
+        return false;
+
+    dataBuf.clear();
+
+    if (!socket->waitForBytesWritten())
+        return false;
+
+    // Packet written. Waiting for reply
+
+    protoParser.clear();
+
+    while ((bytesToRead = protoParser.bytesToReadCount()) > 0) {
+        if (socket->bytesAvailable() <= 0) {
+            if (!socket->waitForReadyRead(readTimeout)) {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Timeout reading header data from socket.";
+                //return false;
+            }
+        }
+
+        uint8_t *packetBuf = new uint8_t[bytesToRead];
+        Q_ASSERT(packetBuf != NULL);
+
+        bytesReaded = socket->read((char *)packetBuf, bytesToRead);
+
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Readed:" << bytesReaded << "To read:" << bytesToRead;
+
+        if (bytesReaded <= 0) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error reading header data from socket.";
+            delete [] packetBuf;
+            return false;
+        }
+
+        if ((res = protoParser.bytesReaded(packetBuf, bytesReaded)) != NetworkProtoParser::E_OK) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Error parsing packet:" << res;
+            delete [] packetBuf;
+            return false;
+        }
+
+        delete [] packetBuf;
+        packetBuf = NULL;
+    }
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Packet readed successfully";
+
+    packet_size_t payloadSize;
+
+    if (protoParser.payloadSize(payloadSize) != NetworkProtoParser::E_OK)
+        return false;
+
+    if (protoParser.payloadData(dataBuf) != NetworkProtoParser::E_OK)
+        return false;
+
+    scheduleData = QString::fromUtf8(dataBuf.data(), dataBuf.size());
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Server returned schedule data:" << scheduleData;
+
+    return true;
+}
 
 QString TCPLoader::description() const {
 	return "Content loader for TCP.";

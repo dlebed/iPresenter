@@ -58,7 +58,7 @@ public:
     
     
 protected:
-    uint8_t fillScheduleBlocks(QDomDocument &scheduleDocument);
+    uint8_t fillScheduleBlocks(QDomDocument &presentationDocument);
     
 private:
     IDBProxy *dbProxy;

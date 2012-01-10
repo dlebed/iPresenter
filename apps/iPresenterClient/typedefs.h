@@ -18,4 +18,8 @@ enum AGENT_COMMANDS  {
 typedef uint64_t    media_size_t;
 typedef uint32_t    schedule_version_t;
 
+
+// Defines
+#define PRESENTATION_VERSION_INVALID    0
+
 #endif // TYPEDEFS_H

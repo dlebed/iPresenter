@@ -19,10 +19,19 @@ quint8 PresentationParser::parsePresentation(const QDomDocument &presentation) {
     QList<QString> newBlocksIDs;
     QDomElement newTimeElement;
     
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Parsing presentation...";
+
     quint8 res;
     
     res = chooseBlocksForPlaying(presentation, false, newBlocksIDs, newTimeElement);
     
+    if (res == E_NO_BLOCKS) {
+        blocksMutex.lock();
+        currentPresentation = presentation;
+        blocksMutex.unlock();
+        return res;
+    }
+
     if (res != E_OK) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Cannot choose blocks for playing:" << res;
         return res;
@@ -126,6 +135,25 @@ QDomDocument PresentationParser::nextBlock() {
     blockDocument.appendChild(rootBlockNode);
     
     return blockDocument;
+}
+
+schedule_version_t PresentationParser::presentationVersion() const {
+    if (currentPresentation.isNull()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't get presentation version:" << currentPresentation.toText().data();
+        return PRESENTATION_VERSION_INVALID;
+    }
+
+    bool ok;
+    schedule_version_t version;
+
+    version = currentPresentation.documentElement().attribute("version").toULong(&ok);
+
+    if (!ok) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Presentation version type convert error:" << currentPresentation.documentElement().attribute("version");
+        return PRESENTATION_VERSION_INVALID;
+    }
+
+    return version;
 }
 
 bool PresentationParser::checkTimeInterval(const QString &start, const QString &end) {

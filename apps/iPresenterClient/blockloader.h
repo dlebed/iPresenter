@@ -12,7 +12,7 @@
 #include <hash/ihashcalculator.h>
 #include <loaders/iblockloader.h>
 
-#include <backgroundscheduleloader.h>
+#include <backgroundmedialoader.h>
 
 class BlockLoader : public QThread
 {
@@ -63,7 +63,7 @@ private:
     IHashQuery *hashQuery;
     QString mediaBasePath;
     
-    BackgroundScheduleLoader *backgroundScheduleLoader;
+    BackgroundMediaLoader *backgroundMediaLoader;
     IHashCalculator * hashCalculator;
     QHash<QString, IBlockLoader *> blockLoadersHash;
 };

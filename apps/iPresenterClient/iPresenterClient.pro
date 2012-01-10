@@ -28,7 +28,7 @@ SOURCES += main.cpp \
     presentationparser.cpp \
     hashquery/sqldbhashquery.cpp \
     hashquery/hashqueryfactory.cpp \
-    backgroundscheduleloader.cpp
+    backgroundmedialoader.cpp
 
 HEADERS += \
     imageview.h \
@@ -51,7 +51,7 @@ HEADERS += \
     presentationparser.h \
     hashquery/sqldbhashquery.h \
     hashquery/hashqueryfactory.h \
-    backgroundscheduleloader.h
+    backgroundmedialoader.h
 
 RESOURCES += \
     icons.qrc

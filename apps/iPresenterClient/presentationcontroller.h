@@ -31,6 +31,7 @@ public slots:
 signals:
     void initDone();
     void newBlockXml(const QDomDocument &blockDocument);
+    void checkNewPresentationVersion(schedule_version_t currentPresentationVersion);
     
 protected slots:
     void loadInitialBlock();
@@ -40,6 +41,8 @@ protected slots:
     void blockEndedHandler();
     
     void timePeriodCheck();
+
+    void newPresentationCheck();
 
     void newScheduleLoadedHandler(const QString &scheduleDocString);
 
@@ -54,6 +57,7 @@ private:
     MoviePlayerController *moviePlayerController;
     PresentationParser *presentationParser;
 
+    QTimer newPresentationCheckTimer;
 };
 
 #endif // PRESENTATIONCONTROLLER_H

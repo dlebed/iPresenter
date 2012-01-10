@@ -41,7 +41,7 @@ public slots:
 	
 	quint8 cleanTempDir();
 	
-	quint8 scheduleUpdateCheck(QString & scheduleDocument);
+	quint8 scheduleUpdateCheck(schedule_version_t currentScheduleVersion, QString & scheduleDocument);
     
 protected:
     bool getMediaFileSize(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, media_size_t &fileSize);
@@ -49,8 +49,10 @@ protected:
     bool getMediaFileData(QTcpSocket *socket, const QByteArray &fileHashData, FILE_TYPE fileType, uint8_t *buf, 
                           media_size_t offset, media_size_t size, media_size_t &readedSize);
     
+    bool getScheduleVersion(QTcpSocket *socket, schedule_version_t &scheduleVersion);
     
-    
+    bool getScheduleData(QTcpSocket *socket, QString &scheduleData);
+
 private:
     QSettings settings;
     QString tempDir;
@@ -59,6 +61,7 @@ private:
     uint32_t readTimeout;
 
     QString mediaBasePath;
+    QString agentID;
 };
 
 #endif // TCPLOADER_H

@@ -39,6 +39,8 @@ protected slots:
     void blockLoadedHandler(const QDomDocument &blockDocument);
     
     void nextPresentationItem();
+
+    void checkScheduleUpdate(schedule_version_t currentScheduleVersion);
     
 signals:
     void blockStarted();
