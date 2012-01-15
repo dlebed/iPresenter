@@ -30,6 +30,8 @@ protected slots:
 
     void connectToDB();
 
+    void mediaBlockSelectedHandler(int row);
+
 private:
     MainWindow *mainWindow;
     QSettings settings;
@@ -37,6 +39,7 @@ private:
     // Models
     QSqlTableModel *agentsGroupsModel;
     QSqlRelationalTableModel *agentsModel;
+    QSqlQueryModel *mediaBlocksModel;
     QSqlDatabase ipresenterDB;
     
 };

@@ -3,6 +3,7 @@
 
 #include <QSqlRelationalDelegate>
 
+#include <qlogger.h>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -29,6 +30,11 @@ bool MainWindow::setAgentsModel(QAbstractItemModel * model) {
     ui->agentsTableView->setModel(model);
     ui->agentsTableView->setColumnHidden(0, true);
     ui->agentsTableView->setItemDelegate(new QSqlRelationalDelegate(ui->agentsTableView));
+}
+
+bool MainWindow::setMediaBlocksModel(QAbstractItemModel *model) {
+    ui->mediaBlocksTableView->setModel(model);
+    ui->mediaBlocksTableView->setColumnHidden(0, true);
 }
 
 void MainWindow::on_submitAgentsGroupsChangesButton_clicked()
@@ -72,5 +78,12 @@ void MainWindow::on_removeAgentAction_triggered()
 {
     if (ui->agentsTableView->model() != NULL && ui->agentsTableView->currentIndex().isValid()) {
         ui->agentsTableView->model()->removeRow(ui->agentsTableView->currentIndex().row());
+    }
+}
+
+void MainWindow::on_mediaBlocksTableView_activated(const QModelIndex &index)
+{
+    if (index.isValid()) {
+        emit mediaBlockSelected(index.row());
     }
 }

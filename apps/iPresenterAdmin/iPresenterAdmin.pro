@@ -35,5 +35,10 @@ LIBS += -lqlogger
 # OpenSSL
 LIBS += -lcrypto
 
-QMAKE_CXXFLAGS += -Wno-unused-parameter
+# QHashCalculator
+INCLUDEPATH += ../../libs/qhashcalculator
+QMAKE_LIBDIR += ../../libs/qhashcalculator
+LIBS += -lqhashcalculator
+
+QMAKE_CXXFLAGS += -Wno-unused-parameter -Wreorder
 QMAKE_CXXFLAGS += -std=c++0x

@@ -9,7 +9,7 @@
 
 IPresenterAdminController::IPresenterAdminController(QObject *parent) :
     QObject(parent), mainWindow(NULL),
-    agentsGroupsModel(NULL), agentsModel(NULL)
+    agentsGroupsModel(NULL), agentsModel(NULL), mediaBlocksModel(NULL)
 {
     initView();
 
@@ -35,6 +35,7 @@ void IPresenterAdminController::initView() {
         connect(mainWindow, SIGNAL(postAgentsGroupsChanges()), this, SLOT(postAgentsGroupsChanges()));
         connect(mainWindow, SIGNAL(postAgentsChanges()), this, SLOT(postAgentsChanges()));
         connect(mainWindow, SIGNAL(connectToDB()), this, SLOT(connectToDB()));
+        connect(mainWindow, SIGNAL(mediaBlockSelected(int)), this, SLOT(mediaBlockSelectedHandler(int)));
 
         mainWindow->show();
     }
@@ -114,4 +115,25 @@ void IPresenterAdminController::connectToDB() {
 
     mainWindow->setAgentsModel(agentsModel);
 
+    if (mediaBlocksModel == NULL) {
+        mediaBlocksModel = new QSqlQueryModel(this);
+    }
+
+    mediaBlocksModel->setQuery("SELECT id, name, version FROM blocks", ipresenterDB);
+    mediaBlocksModel->setHeaderData(0, Qt::Horizontal, tr("ID"));
+    mediaBlocksModel->setHeaderData(1, Qt::Horizontal, tr("Name"));
+    mediaBlocksModel->setHeaderData(2, Qt::Horizontal, tr("Version"));
+
+    mainWindow->setMediaBlocksModel(mediaBlocksModel);
+
+
+
+}
+
+void IPresenterAdminController::mediaBlockSelectedHandler(int row) {
+    if (mediaBlocksModel != NULL) {
+        QString name = mediaBlocksModel->data(mediaBlocksModel->index(row, 1)).toString();
+        quint64 id = mediaBlocksModel->data(mediaBlocksModel->index(row, 0)).toULongLong();
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Block selected. Row" << row << "; name:" << name << "; id:" << id;
+    }
 }

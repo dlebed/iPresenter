@@ -18,6 +18,7 @@ public:
     
     bool setAgentsGroupsModel(QAbstractItemModel * model);
     bool setAgentsModel(QAbstractItemModel * model);
+    bool setMediaBlocksModel(QAbstractItemModel *model);
 
     void clearAgentsGroupsModel();
     void clearAgentsModel();
@@ -35,10 +36,13 @@ private slots:
 
     void on_removeAgentAction_triggered();
 
+    void on_mediaBlocksTableView_activated(const QModelIndex &index);
+
 signals:
     void postAgentsGroupsChanges();
     void postAgentsChanges();
     void connectToDB();
+    void mediaBlockSelected(int row);
 
 private:
     Ui::MainWindow *ui;

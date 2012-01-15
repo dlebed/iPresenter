@@ -2,6 +2,9 @@
 #define MEDIABLOCK_H
 
 #include <QObject>
+#include <QList>
+
+#include <entiry/mediafile.h>
 
 class MediaBlock : public QObject
 {
@@ -9,9 +12,28 @@ class MediaBlock : public QObject
 public:
     explicit MediaBlock(QObject *parent = 0);
     
-signals:
-    
-public slots:
+    MediaBlock(QString name, QString description, QObject *parent = 0);
+
+    ~MediaBlock();
+
+    bool addMediaFile(MediaFile *mediaFile);
+    QList<MediaFile *> getMediaFilesList() const { return mediaFiles; }
+
+    void setName(const QString &name) { this->name = name; }
+    QString getName() const { return name; }
+
+    void setDescription(const QString &description) { this->description = description; }
+    QString getDescription() const { return description; }
+
+    QString getBlockXml(bool &ok);
+
+private:
+    QList<MediaFile *> mediaFiles;
+
+    QString name;
+    QString description;
+
+    quint32 version;
     
 };
 
