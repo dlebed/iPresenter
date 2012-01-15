@@ -9,7 +9,7 @@
 
 #include <hashquery/ihashquery.h>
 
-#include <hash/ihashcalculator.h>
+#include <ihashcalculator.h>
 #include <loaders/iblockloader.h>
 
 #include <backgroundmedialoader.h>

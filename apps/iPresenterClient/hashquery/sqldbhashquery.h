@@ -8,7 +8,7 @@
 #include <QMutex>
 
 #include "ihashquery.h"
-#include "hash/ihashcalculator.h"
+#include <ihashcalculator.h>
 
 #define HASH_QUERY_DB_NAME      QString("HashQuery")
 

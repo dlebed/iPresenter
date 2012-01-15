@@ -9,7 +9,7 @@
 #include <typedefs.h>
 #include <hashquery/ihashquery.h>
 #include <loaders/iblockloader.h>
-#include <hash/ihashcalculator.h>
+#include <ihashcalculator.h>
 
 #define DEFAULT_HASH_TYPE   "sha256"
 

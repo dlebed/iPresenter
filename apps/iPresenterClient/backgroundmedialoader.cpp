@@ -5,7 +5,7 @@
 #include <QDomDocument>
 
 #include <hashquery/hashqueryfactory.h>
-#include <hash/hashcalculatorfactory.h>
+#include <hashcalculatorfactory.h>
 
 BackgroundMediaLoader::BackgroundMediaLoader(const QString &scheduleDocString, IBlockLoader *blockLoader) :
     scheduleDocString(scheduleDocString),

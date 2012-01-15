@@ -9,7 +9,7 @@
 
 #include <qlogger.h>
 
-#include <hash/hashcalculatorfactory.h>
+#include <hashcalculatorfactory.h>
 #include <hashquery/hashqueryfactory.h>
 
 BlockLoader::BlockLoader(const QString &hashType, QObject *parent) :

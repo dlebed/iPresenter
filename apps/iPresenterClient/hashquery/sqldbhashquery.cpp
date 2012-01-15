@@ -8,7 +8,7 @@
 
 #include <qlogger.h>
 
-#include "hash/hashcalculatorfactory.h"
+#include <hashcalculatorfactory.h>
 
 SQLDBHashQuery::SQLDBHashQuery(const QString &hashName) :
     hashCalculator(NULL)

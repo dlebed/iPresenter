@@ -17,13 +17,10 @@ SOURCES += main.cpp \
     imageview.cpp \
     imageviewcontroller.cpp \
     movies/mplayermovieplayer.cpp \
-    hash/md5hashcalculator.cpp \
-    hash/hashcalculatorfactory.cpp \
     cache/mempixmapcache.cpp \
     blockcontroller.cpp \
     presentationcontroller.cpp \
     blockloader.cpp \
-    hash/sha256hashcalculator.cpp \
     movieplayercontroller.cpp \
     presentationparser.cpp \
     hashquery/sqldbhashquery.cpp \
@@ -36,15 +33,11 @@ HEADERS += \
     movies/imoviemplayer.h \
     movies/mplayermovieplayer.h \
     hashquery/ihashquery.h \
-    hash/ihashcalculator.h \
-    hash/md5hashcalculator.h \
-    hash/hashcalculatorfactory.h \
     cache/ipixmapcache.h \
     cache/mempixmapcache.h \
     blockcontroller.h \
     presentationcontroller.h \
     blockloader.h \
-    hash/sha256hashcalculator.h \
     loaders/iblockloader.h \
     typedefs.h \
     movieplayercontroller.h \
@@ -65,6 +58,10 @@ LIBS += -lqlogger
 # OpenSSL
 LIBS += -lcrypto
 
+# QHashCalculator
+INCLUDEPATH += ../../libs/qhashcalculator
+QMAKE_LIBDIR += ../../libs/qhashcalculator
+LIBS += -lqhashcalculator
 
 QMAKE_CXXFLAGS += -Wno-unused-parameter
 QMAKE_CXXFLAGS += -std=c++0x
