@@ -9,6 +9,8 @@
 #include <QSettings>
 
 #include "mainwindow.h"
+#include <entiry/mediablock.h>
+#include <entiry/mediafile.h>
 
 class IPresenterAdminController : public QObject
 {
@@ -24,13 +26,23 @@ protected:
 
     void initView();
 
+    QString blockData(quint64 id);
+    bool getBlockFiles(QDomDocument &blockDocument);
+
 protected slots:
     void postAgentsGroupsChanges();
     void postAgentsChanges();
 
+    void updateBlockFilesList();
+
     void connectToDB();
 
     void mediaBlockSelectedHandler(int row);
+
+    void addMediaBlockHandler(QString name, QString description);
+    void addMediaFileHandler(QString filePath, QString name, QString description);
+    void mediaFileSelectedHandler(int row, QString name);
+
 
 private:
     MainWindow *mainWindow;
@@ -41,6 +53,9 @@ private:
     QSqlRelationalTableModel *agentsModel;
     QSqlQueryModel *mediaBlocksModel;
     QSqlDatabase ipresenterDB;
+
+    MediaBlock *currentMediaBlock;
+    MediaFile *currentMediaFile;
     
 };
 

@@ -7,6 +7,8 @@
 #include <QDomDocument>
 #include <QDomElement>
 
+#include <hashcalculatorfactory.h>
+
 class MediaFile : public QObject
 {
     Q_OBJECT
@@ -24,6 +26,8 @@ public:
 
     bool isValid();
 
+    bool setFile(QString fileName, QString name, QString description);
+
     void setHash(const QString &hash) { this->fileHash = hash; }
     QString getHash();
 
@@ -37,9 +41,10 @@ public:
     QString getFilePath() const { return mediaFilePath; }
 
     void setFileSize(quint64 fileSize) { if (this->fileSize == 0) { this->fileSize = fileSize; } }
-    quint64 getFileSize(bool &ok);
+    quint64 getFileSize(bool *ok = 0);
 
     void setFileType(MEDIA_FILE_TYPE type) { this->fileType = type; }
+    QString getFileTypeStr() const;
     MEDIA_FILE_TYPE getFileType() const { return fileType; }
 
     void setTimeout(quint32 timeout) { this->timeout = timeout; }
@@ -52,6 +57,8 @@ public:
 
 private:
     QSettings settings;
+
+    IHashCalculator *hashCalculator;
 
     MEDIA_FILE_TYPE fileType;
     QString mediaFilePath;

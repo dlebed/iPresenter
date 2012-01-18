@@ -1,12 +1,18 @@
 #include "mediafile.h"
 
 #include <QFile>
+#include <QFileInfo>
 
-#include <hashcalculatorfactory.h>
+
+
+#include <qlogger.h>
 
 MediaFile::MediaFile(QObject *parent) :
-    QObject(parent), fileSize(0), fileType(FILE_TYPE_UNKNOWN), timeout(0)
+    QObject(parent), hashCalculator(NULL), fileSize(0), fileType(FILE_TYPE_UNKNOWN), timeout(0)
 {
+    hashCalculator = HashCalculatorFactory::hashCalculatorInstance(settings.value("hash/type", "sha256").toString());
+    Q_ASSERT(hashCalculator != NULL);
+
 }
 
 
@@ -17,6 +23,47 @@ MediaFile::MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QS
 
 }
 
+
+bool MediaFile::setFile(QString fileName, QString name, QString description) {
+    if (!QFile::exists(fileName)) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't create media file: file does not exist";
+        return false;
+    }
+
+    QFileInfo fileInfo(fileName);
+
+    if (fileInfo.suffix() == "jpg" || fileInfo.suffix() == "png") {
+        fileType = FILE_TYPE_IMAGE;
+    } else if (fileInfo.suffix() == "avi" || fileInfo.suffix() == "mkv" ||
+               fileInfo.suffix() == "mov" || fileInfo.suffix() == "mp4") {
+        fileType = FILE_TYPE_MOVIE;
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't create media file: unknown file type";
+        return false;
+    }
+
+    QString hash = hashCalculator->getFileHash(fileName);
+
+    if (hash.isEmpty()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't create media file: empty hash";
+        return false;
+    }
+
+    fileHash = hash;
+
+    QFile mediaFile(fileName);
+
+    fileSize = mediaFile.size();
+
+    this->name = name;
+    this->description = description;
+    mediaFilePath = fileName;
+    timeout = 0;
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Successfully created media file:" << fileName << name << description << hash << fileSize << fileType;
+
+    return true;
+}
 
 bool MediaFile::isValid() {
     if (!mediaFilePath.isEmpty() && QFile::exists(mediaFilePath))
@@ -43,22 +90,36 @@ QString MediaFile::getHash() {
     return QString();
 }
 
-quint64 MediaFile::getFileSize(bool &ok) {
-    ok = false;
+quint64 MediaFile::getFileSize(bool *ok) {
+    if (ok != NULL)
+        *ok = false;
 
     if (fileSize == 0 && QFile::exists(mediaFilePath)) {
         QFile mediaFile(mediaFilePath);
 
         if (mediaFile.open(QIODevice::ReadOnly) && mediaFile.size() >= 0) {
             fileSize = mediaFile.size();
-            ok = true;
+            if (ok != NULL)
+                *ok = true;
             return mediaFile.size();
         }
     } else {
-        ok = true;
+        if (ok != NULL)
+            *ok = true;
     }
 
     return fileSize;
+}
+
+QString MediaFile::getFileTypeStr() const {
+    switch (fileType) {
+    case FILE_TYPE_UNKNOWN:
+        return "unknown";
+    case FILE_TYPE_IMAGE:
+        return "image";
+    case FILE_TYPE_MOVIE:
+        return "movie";
+    }
 }
 
 bool MediaFile::parseElement(const QDomElement &mediaElement) {
