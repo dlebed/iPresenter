@@ -125,6 +125,9 @@ QString SQLDBHashQuery::lookupFilePathByHash(const QString &fileHash, FILE_TYPE 
         filePath = query.value(0).toString();
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Path for file:" << filePath << "; type:" <<
                                                               fileTypeStr(fileType) << "; hash:" << fileHash;
+
+        // Update last access datetime
+        db.exec("UPDATE " + fileTypeStr(fileType) + " SET last_access = datetime('now') where hash = '" + fileHash.toLower() + "'");
     } else {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Unable to get file path for hash. File type:" << 
                                                                fileTypeStr(fileType) << ". File hash:" << fileHash;
