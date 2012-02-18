@@ -52,7 +52,7 @@ uint8_t AgentCommandExecutor::executeCommand(const NetworkProtoParser &protoPars
         agentID = payloadData.left(AGENT_ID_LEN);
     }
     
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to execute command" << cmd;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to execute agent command" << cmd;
     
     switch (cmd) {
     case AGENT_GET_SCHEDULE_VERSION:

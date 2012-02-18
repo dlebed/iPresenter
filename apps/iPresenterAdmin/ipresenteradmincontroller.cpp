@@ -30,6 +30,7 @@ IPresenterAdminController::IPresenterAdminController(QObject *parent) :
     connect(adminServerClientThread, SIGNAL(processProgress(int)), this, SLOT(updateProgressDialog(int)), Qt::QueuedConnection);
     connect(adminServerClientThread, SIGNAL(processEndedError(quint8)), this, SLOT(processEndedErrorHandler(quint8)), Qt::QueuedConnection);
     connect(adminServerClientThread, SIGNAL(processEndedOk()), this, SLOT(processEndedOkHandler()), Qt::QueuedConnection);
+
 }
 
 IPresenterAdminController::~IPresenterAdminController() {
@@ -377,7 +378,11 @@ void IPresenterAdminController::mediaFileSelectedHandler(int row, QString name) 
 }
 
 void IPresenterAdminController::processEndedErrorHandler(quint8 error) {
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media block file upload is stopped with error" << error;
+    progressDialog->accept();
+    mainWindow->setEnabled(true);
 
+    QMessageBox::warning(mainWindow, "Upload error!", "Error while uploading file " + filesToUpload.at(currentUploadFileIndex - 1)->getFilePath(), QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void IPresenterAdminController::processEndedOkHandler() {
@@ -434,7 +439,10 @@ void IPresenterAdminController::nextUploadFile() {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Uploading next block file:" << mediaFile->getFilePath();
 
         QMetaObject::invokeMethod(adminServerClientThread, "uploadMediaFile", Qt::QueuedConnection,
-                                  Q_ARG(QString, mediaFile->getFilePath()), Q_ARG(QString, mediaFile->getName()), Q_ARG(QString, mediaFile->getDescription()),
+                                  Q_ARG(QString, mediaFile->getFilePath()),
+                                  Q_ARG(QString, mediaFile->getHash()),
+                                  Q_ARG(QString, mediaFile->getName()),
+                                  Q_ARG(QString, mediaFile->getDescription()),
                                   Q_ARG(quint8, mediaFile->getFileType()));
 
         showProgressDialog("Uploading file " + mediaFile->getFilePath() + " to server...");

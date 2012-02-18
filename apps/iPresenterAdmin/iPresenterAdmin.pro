@@ -16,7 +16,9 @@ SOURCES += main.cpp\
     dbconnectiondialog.cpp \
     entiry/mediablock.cpp \
     entiry/mediafile.cpp \
-    adminserverclientthread.cpp
+    adminserverclientthread.cpp \
+    network/tcpclientmodule.cpp \
+    ../iPresenterServer/networkprotoparser.cpp
 
 HEADERS  += mainwindow.h \
     ipresenteradmincontroller.h \
@@ -24,11 +26,15 @@ HEADERS  += mainwindow.h \
     entiry/mediablock.h \
     entiry/mediafile.h \
     adminserverclientthread.h \
-    types.h
+    types.h \
+    network/tcpclientmodule.h \
+    ../iPresenterServer/networkprotoparser.h
 
 FORMS    += mainwindow.ui \
     dbconnectiondialog.ui
 
+
+INCLUDEPATH += ../iPresenterServer
 
 # QLogger
 INCLUDEPATH += ../../libs/qlogger

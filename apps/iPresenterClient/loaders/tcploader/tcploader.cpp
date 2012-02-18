@@ -43,7 +43,6 @@ bool TCPLoader::initBlockLoader() {
 quint8 TCPLoader::loadFile(const QString &fileHash, FILE_TYPE fileType, QString &filePath) {
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << "Loading file type" << fileType << "with hash" << fileHash;
     
-    NetworkProtoParser protoParser;
     int64_t totalBytesReaded = 0;
     uint64_t bytesToRead;
     media_size_t fileSize;

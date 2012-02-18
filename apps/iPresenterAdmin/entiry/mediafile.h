@@ -24,6 +24,8 @@ public:
     
     MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QString path, quint64 size = 0, quint32 timeout = 0, bool serverStored = false, QObject *parent = 0);
 
+    ~MediaFile();
+
     bool isValid();
 
     bool setFile(QString fileName, QString name, QString description);

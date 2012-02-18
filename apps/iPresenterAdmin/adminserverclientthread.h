@@ -5,6 +5,8 @@
 
 #include "types.h"
 
+#include <network/tcpclientmodule.h>
+
 class AdminServerClientThread : public QThread
 {
     Q_OBJECT
@@ -33,11 +35,13 @@ public slots:
 
     void stop();
 
-    void uploadMediaFile(QString filePath, QString name, QString description, quint8 type);
+    void uploadMediaFile(QString filePath, QString hash, QString name, QString description, quint8 type);
 
 private:
     uint16_t serverPort;
     QString serverHost;
+
+    TCPClientModule tcpClientModule;
 
     
 };

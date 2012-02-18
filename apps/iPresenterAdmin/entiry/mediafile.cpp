@@ -23,6 +23,11 @@ MediaFile::MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QS
 
 }
 
+MediaFile::~MediaFile() {
+    if (hashCalculator != NULL)
+        delete hashCalculator;
+}
+
 
 bool MediaFile::setFile(QString fileName, QString name, QString description) {
     if (!QFile::exists(fileName)) {
@@ -77,8 +82,8 @@ QString MediaFile::getHash() {
         return fileHash;
 
     if (QFile::exists(mediaFilePath)) {
-        IHashCalculator *hashCalculator = HashCalculatorFactory::hashCalculatorInstance(settings.value("hash/default", "sha256").toString());
-        Q_ASSERT(hashCalculator != NULL);
+        //IHashCalculator *hashCalculator = HashCalculatorFactory::hashCalculatorInstance(settings.value("hash/default", "sha256").toString());
+        //Q_ASSERT(hashCalculator != NULL);
         QString calcFileHash = hashCalculator->getFileHash(mediaFilePath);
 
         if (!calcFileHash.isEmpty()) {

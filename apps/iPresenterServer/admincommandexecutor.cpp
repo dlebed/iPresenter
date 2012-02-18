@@ -14,13 +14,16 @@
 #define MEDIA_READ_BLOCK_SIZE       (4 * 1024)
 
 AdminCommandExecutor::AdminCommandExecutor() :
-    dbProxy(NULL)
+    dbProxy(NULL), hashCalculator(NULL)
 {
     dbProxy = DBProxyFactory::dbProxy();
     Q_ASSERT(dbProxy != NULL);
     
     QSettings settings;
     mediaBasePath = settings.value("storage/media_base_path", "/var/media").toString();
+
+    hashCalculator = HashCalculatorFactory::hashCalculatorInstance(settings.value("hash/type", "sha256").toString());
+    Q_ASSERT(hashCalculator != NULL);
 }
 
 AdminCommandExecutor::~AdminCommandExecutor() {
@@ -32,9 +35,8 @@ AdminCommandExecutor::~AdminCommandExecutor() {
 
 uint8_t AdminCommandExecutor::executeCommand(const NetworkProtoParser &protoParser, QTcpSocket *tcpSocket) {
     QByteArray payloadData;
-    QString agentID;
-    GetMediaDataCmd *cmdGetData = NULL;
-    GetMediaSizeCmd *cmdGetSize = NULL;
+    MediaHashCmd *mediaHashCmd = NULL;
+    MediaUploadCmd *mediaUploadCmd = NULL;
     uint8_t res;
     packet_cmd_t cmd;
     
@@ -45,53 +47,80 @@ uint8_t AdminCommandExecutor::executeCommand(const NetworkProtoParser &protoPars
         if ((res = protoParser.cmd(cmd)) != NetworkProtoParser::E_OK)
         return res;
     
-    if (cmd == AGENT_GET_SCHEDULE_VERSION || cmd == AGENT_GET_SCHEDULE_DATA) {
+    /*if (cmd == AGENT_GET_SCHEDULE_VERSION || cmd == AGENT_GET_SCHEDULE_DATA) {
         if (payloadData.size() > AGENT_ID_LEN || payloadData.size() == 0)
             return E_PAYLOAD_LEN;
 
         agentID = payloadData.left(AGENT_ID_LEN);
-    }
+    }*/
     
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to execute command" << cmd;
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Starting to execute admin command" << cmd;
     
     switch (cmd) {
-    case AGENT_GET_SCHEDULE_VERSION:
-        return getScheduleVersion(tcpSocket, agentID);
-        break;
-       
-    case AGENT_GET_SCHEDULE_DATA:
-        return getScheduleData(tcpSocket, agentID);
-        break;
-        
-    case AGENT_GET_MEDIA_SIZE:
-        if (payloadData.size() < sizeof(GetMediaSizeCmd))
+    case ADMIN_INIT_DATA_UPLOAD:
+        if (payloadData.size() < sizeof(MediaHashCmd))
             return E_PAYLOAD_LEN;
-        
-        cmdGetSize = new GetMediaSizeCmd;
-        Q_ASSERT(cmdGetSize != NULL);
-        
-        memcpy(cmdGetSize, payloadData.data(), sizeof(GetMediaSizeCmd));
-        
-        res = getMediaSize(tcpSocket, cmdGetSize);
-        
-        delete cmdGetSize;
-        
+
+        mediaHashCmd = new MediaHashCmd;
+        Q_ASSERT(mediaHashCmd != NULL);
+
+        memcpy(mediaHashCmd, payloadData.data(), sizeof(MediaHashCmd));
+
+        res = initDataUpload(tcpSocket, mediaHashCmd);
+
+        delete mediaHashCmd;
+
         return res;
-            
+
         break;
-        
-    case AGENT_GET_MEDIA_DATA:
-        if (payloadData.size() < sizeof(GetMediaDataCmd))
+
+    case ADMIN_DATA_UPLOAD:
+        if (payloadData.size() < sizeof(MediaUploadCmd))
+            return E_PAYLOAD_LEN;
+
+        mediaUploadCmd = new MediaUploadCmd;
+        Q_ASSERT(mediaUploadCmd != NULL);
+
+        memcpy(mediaUploadCmd, payloadData.data(), sizeof(MediaUploadCmd));
+
+        res = appendMediaFileData(tcpSocket, mediaUploadCmd, (uint8_t*)payloadData.data() + sizeof(MediaUploadCmd),
+                                  payloadData.size() - sizeof(MediaUploadCmd));
+
+        delete mediaUploadCmd;
+
+        return res;
+
+        break;
+
+    case ADMIN_DATA_UPLOAD_VERIFY:
+        if (payloadData.size() < sizeof(MediaUploadCmd))
+            return E_PAYLOAD_LEN;
+
+        mediaUploadCmd = new MediaUploadCmd;
+        Q_ASSERT(mediaUploadCmd != NULL);
+
+        memcpy(mediaUploadCmd, payloadData.data(), sizeof(MediaUploadCmd));
+
+        res = mediaDataVerify(tcpSocket, mediaUploadCmd);
+
+        delete mediaUploadCmd;
+
+        return res;
+
+        break;
+
+    case ADMIN_GET_MEDIA_DATA:
+        if (payloadData.size() < sizeof(MediaUploadCmd))
             return E_PAYLOAD_LEN;
         
-        cmdGetData = new GetMediaDataCmd;
-        Q_ASSERT(cmdGetData != NULL);
+        mediaUploadCmd = new MediaUploadCmd;
+        Q_ASSERT(mediaUploadCmd != NULL);
         
-        memcpy(cmdGetData, payloadData.data(), sizeof(GetMediaDataCmd));
+        memcpy(mediaUploadCmd, payloadData.data(), sizeof(MediaUploadCmd));
         
-        res = getMediaData(tcpSocket, cmdGetData);
+        res = getMediaData(tcpSocket, mediaUploadCmd);
         
-        delete cmdGetData;
+        delete mediaUploadCmd;
         
         return res;
         
@@ -105,125 +134,191 @@ uint8_t AdminCommandExecutor::executeCommand(const NetworkProtoParser &protoPars
     
 }
 
-uint8_t AdminCommandExecutor::getScheduleVersion(QTcpSocket *tcpSocket, const QString &agentID) {
+uint8_t AdminCommandExecutor::initDataUpload(QTcpSocket *tcpSocket, MediaHashCmd *mediaHashCmd) {
     uint8_t res;
-    schedule_version_t version;
     NetworkProtoParser packetParser;
     QByteArray packetData;
+    QString hash = QString::fromUtf8((char*)mediaHashCmd->hash, sizeof(mediaHashCmd->hash));
+    media_size_t size;
+    uint8_t resultCode = ADMIN_NACK;;
+    QString mediaTypeDir;
+
+    switch (mediaHashCmd->mediaType) {
+    case MEDIA_IMAGE:
+        mediaTypeDir = "images";
+        break;
+    case MEDIA_MOVIE:
+        mediaTypeDir = "movies";
+        break;
+    default:
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unknown media type:" <<mediaHashCmd->mediaType;
+        return E_UNKNOWN_MEDIA_TYPE;
+    }
 
     Q_ASSERT(dbProxy != NULL);
-    
-    res = dbProxy->getScheduleVersion(agentID, version);
 
-    if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
-        return E_UNKNOWN_AGENT_ID;
-    else if (res != IDBProxy::E_OK)
-        return E_DB_ERROR;
-    
-    packetParser.makeHeader(AGENT_GET_SCHEDULE_VERSION);
-    if (packetParser.appendPayloadData((uint8_t*)&version, sizeof(version)) != NetworkProtoParser::E_OK)
+    res = dbProxy->getMediaSize(hash, (MEDIA_TYPES)mediaHashCmd->mediaType, size);
+
+    if (res != IDBProxy::E_OK) {
+        if (QFile::exists(mediaBasePath + "/" + mediaTypeDir + "/" + hash)) {
+            if (QFile::remove(mediaBasePath + "/" + mediaTypeDir + "/" + hash)) {
+                resultCode = ADMIN_OK;
+            } else {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't remove existing file:" << mediaBasePath + "/" + mediaTypeDir + "/" + hash;
+            }
+        } else {
+            resultCode = ADMIN_OK;
+        }
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file exists in DB:" << hash;
+    }
+
+    if (resultCode == ADMIN_OK) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Upload of media file initiated:" << hash;
+    }
+
+    packetParser.makeHeader(ADMIN_INIT_DATA_UPLOAD);
+
+    if (packetParser.appendPayloadData((uint8_t*)&resultCode, sizeof(resultCode)) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
-    
+
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
         return E_GET_DATA;
-    
+
     if (tcpSocket->write(packetData.data(), packetData.size()) != packetData.size())
         return E_SOCKET_WRITE_ERROR;
-    
+
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
-        
+
     return E_OK;
 }
 
-uint8_t AdminCommandExecutor::getScheduleData(QTcpSocket *tcpSocket, const QString &agentID) {
+uint8_t AdminCommandExecutor::appendMediaFileData(QTcpSocket *tcpSocket, MediaUploadCmd *mediaUploadCmd, uint8_t *data, media_size_t dataSize) {
     uint8_t res;
-    schedule_version_t scheduleVersion = 0;
-    QString presentationData;
     NetworkProtoParser packetParser;
     QByteArray packetData;
-    QDomDocument scheduleDocument, presentationDocument;
+    QString hash = QString::fromUtf8((char*)mediaUploadCmd->hash, sizeof(mediaUploadCmd->hash));
+    media_size_t size;
+    uint8_t resultCode = ADMIN_NACK;
+    QString mediaTypeDir;
+
+    switch (mediaUploadCmd->mediaType) {
+    case MEDIA_IMAGE:
+        mediaTypeDir = "images";
+        break;
+    case MEDIA_MOVIE:
+        mediaTypeDir = "movies";
+        break;
+    default:
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unknown media type:" << mediaUploadCmd->mediaType;
+        return E_UNKNOWN_MEDIA_TYPE;
+    }
+
     Q_ASSERT(dbProxy != NULL);
-    
-    res = dbProxy->getScheduleData(agentID, presentationData);
-    
-    if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
-        return E_UNKNOWN_AGENT_ID;
-    else if (res != IDBProxy::E_OK)
-        return E_DB_ERROR;
-    
-    res = dbProxy->getScheduleVersion(agentID, scheduleVersion);
-    
-    if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
-        return E_UNKNOWN_AGENT_ID;
-    else if (res != IDBProxy::E_OK)
-        return E_DB_ERROR;
-    
-    if (!scheduleDocument.setContent(presentationData))
-        return E_XML_PARSE_ERROR;
-    
-    QDomElement presentationElement = presentationDocument.createElement("presentation");
-    presentationDocument.appendChild(presentationElement);
 
-    presentationElement.appendChild(scheduleDocument.documentElement());
+    res = dbProxy->getMediaSize(hash, (MEDIA_TYPES)mediaUploadCmd->mediaType, size);
 
-    if ((res = fillScheduleBlocks(presentationDocument)) != E_OK)
-        return res;
+    if (res != IDBProxy::E_OK) {
+        QFile mediaFile(mediaBasePath + "/" + mediaTypeDir + "/" + hash);
 
-    presentationElement.setAttribute("version", scheduleVersion);
-    
-    presentationData = presentationDocument.toString();
-    
-    packetParser.makeHeader(AGENT_GET_SCHEDULE_DATA);
-    if (packetParser.appendPayloadData(presentationData.toUtf8()) != NetworkProtoParser::E_OK)
+        if (mediaFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
+            if (mediaFile.write((char*)data, dataSize) == dataSize) {
+                resultCode = ADMIN_OK;
+            } else {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Data write mismatch:" << hash << size;
+            }
+
+            mediaFile.close();
+        } else {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't open media file:" << mediaFile.fileName();
+        }
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file exists in DB:" << hash;
+    }
+
+    if (resultCode == ADMIN_OK) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Media file data append success:" << hash << size;
+    }
+
+    packetParser.makeHeader(ADMIN_INIT_DATA_UPLOAD);
+
+    if (packetParser.appendPayloadData((uint8_t*)&resultCode, sizeof(resultCode)) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
-    
+
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
         return E_GET_DATA;
-    
-    if (tcpSocket->write(packetData) != packetData.size())
+
+    if (tcpSocket->write(packetData.data(), packetData.size()) != packetData.size())
         return E_SOCKET_WRITE_ERROR;
-    
+
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
-    
+
     return E_OK;
 }
 
-uint8_t AdminCommandExecutor::getMediaSize(QTcpSocket *tcpSocket, GetMediaSizeCmd *cmdData) {
-    media_size_t mediaSize;
+uint8_t AdminCommandExecutor::mediaDataVerify(QTcpSocket *tcpSocket, MediaUploadCmd *mediaUploadCmd) {
+    uint8_t res;
     NetworkProtoParser packetParser;
     QByteArray packetData;
-    uint8_t res;
-    QString hash = QString::fromUtf8((char*)cmdData->hash, sizeof(cmdData->hash));
-    Q_ASSERT(dbProxy != NULL);
-    
-    res = dbProxy->getMediaSize(hash, (MEDIA_TYPES)cmdData->mediaType, mediaSize);
+    QString hash = QString::fromUtf8((char*)mediaUploadCmd->hash, sizeof(mediaUploadCmd->hash));
+    uint8_t resultCode = ADMIN_NACK;
+    QString mediaTypeDir;
 
-    if (res == IDBProxy::E_EMPTY_SELECT_RESULT)
-        return E_UNKNOWN_AGENT_ID;
-    else if (res != IDBProxy::E_OK)
-        return E_DB_ERROR;
-    
-    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media size:" << mediaSize << "hash:" << hash;
-    
-    packetParser.makeHeader(AGENT_GET_MEDIA_SIZE);
-    if (packetParser.appendPayloadData((uint8_t*)&mediaSize, sizeof(mediaSize)) != NetworkProtoParser::E_OK)
+    switch (mediaUploadCmd->mediaType) {
+    case MEDIA_IMAGE:
+        mediaTypeDir = "images";
+        break;
+    case MEDIA_MOVIE:
+        mediaTypeDir = "movies";
+        break;
+    default:
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unknown media type:" << mediaUploadCmd->mediaType;
+        return E_UNKNOWN_MEDIA_TYPE;
+    }
+
+    QFile mediaFile(mediaBasePath + "/" + mediaTypeDir + "/" + hash);
+
+    if (mediaFile.open(QIODevice::ReadOnly)) {
+        if (mediaFile.size() == mediaUploadCmd->size) {
+            mediaFile.close();
+            QString calculatedHash = hashCalculator->getFileHash(mediaBasePath + "/" + mediaTypeDir + "/" + hash);
+            if (calculatedHash == hash) {
+                resultCode = ADMIN_OK;
+            } else {
+                QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file hash mismatch" << hash << "!=" << calculatedHash;
+            }
+        } else {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file size mismatch:" << mediaUploadCmd->size << "!=" << mediaFile.size();
+            mediaFile.close();
+        }
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media open error:" << mediaBasePath + "/" + mediaTypeDir + "/" + hash;
+    }
+
+    if (resultCode == ADMIN_OK) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file check succeed" << mediaBasePath + "/" + mediaTypeDir + "/" + hash;
+    }
+
+    packetParser.makeHeader(ADMIN_INIT_DATA_UPLOAD);
+
+    if (packetParser.appendPayloadData((uint8_t*)&resultCode, sizeof(resultCode)) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
-    
+
     if (packetParser.packetData(packetData) != NetworkProtoParser::E_OK)
         return E_GET_DATA;
-    
-    if (tcpSocket->write(packetData) != packetData.size())
+
+    if (tcpSocket->write(packetData.data(), packetData.size()) != packetData.size())
         return E_SOCKET_WRITE_ERROR;
-    
+
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
-    
+
     return E_OK;
 }
 
-uint8_t AdminCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCmd *cmdData) {
+uint8_t AdminCommandExecutor::getMediaData(QTcpSocket *tcpSocket, MediaUploadCmd *cmdData) {
     media_size_t mediaSize, totalBytes;
     int64_t bytesReaded;
     QString hash = QString::fromUtf8((char *)cmdData->hash, sizeof(cmdData->hash));
@@ -278,7 +373,7 @@ uint8_t AdminCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
         return E_PARAMETERS_INVALID;
     }
     
-    packetParser.makeHeader(AGENT_GET_MEDIA_DATA);
+    packetParser.makeHeader(ADMIN_GET_MEDIA_DATA);
     if (packetParser.incPayloadSize(cmdData->size) != NetworkProtoParser::E_OK)
         return E_MAKE_PACKET;
     
@@ -309,49 +404,6 @@ uint8_t AdminCommandExecutor::getMediaData(QTcpSocket *tcpSocket, GetMediaDataCm
     
     if (!tcpSocket->waitForBytesWritten())
         return E_SOCKET_WRITE_ERROR;
-    
-    return E_OK;
-}
-
-uint8_t AdminCommandExecutor::fillScheduleBlocks(QDomDocument &presentationDocument) {
-    QDomNodeList blockNodes = presentationDocument.elementsByTagName("block");
-    QSet<QString> blockIDsList;
-    
-    //! Generating used block set
-    for (int i = 0; i < blockNodes.size(); i++) {
-        QDomElement blockElement = blockNodes.at(i).toElement();
-        if (blockElement.isNull())
-            continue;
-        
-        if (!blockElement.attribute("id").isEmpty()) {
-            blockIDsList.insert(blockElement.attribute("id"));
-        }
-    }
-    
-    QDomElement blocksElement = presentationDocument.createElement("blocks");
-    presentationDocument.documentElement().appendChild(blocksElement);
-    
-    foreach (const QString &blockID, blockIDsList) {
-        QString blockData;
-        QDomDocument blockDocument;
-        uint8_t res;
-        
-        res = dbProxy->getBlockData(blockID, blockData);
-        
-        if (res == IDBProxy::E_EMPTY_SELECT_RESULT) {
-            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unknown block id:" << blockID;
-            continue;
-        } else if (res != IDBProxy::E_OK) {
-            return E_DB_ERROR;
-        }
-        
-        if (!blockDocument.setContent(blockData)) {
-            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Unable to parse block:" << blockID << blockData;
-            continue;
-        }
-        
-        blocksElement.appendChild(blockDocument.documentElement());
-    }
     
     return E_OK;
 }
