@@ -20,9 +20,9 @@ public:
         FILE_TYPE_MOVIE     =   0x02
     };
 
-    explicit MediaFile(QObject *parent = 0);
+    explicit MediaFile(bool serverStored = false, QObject *parent = 0);
     
-    MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QString path, quint64 size = 0, quint32 timeout = 0, QObject *parent = 0);
+    MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QString path, quint64 size = 0, quint32 timeout = 0, bool serverStored = false, QObject *parent = 0);
 
     bool isValid();
 
@@ -55,7 +55,11 @@ public:
 
     void clear();
 
+    bool isServerStored() const { return serverStored; }
+
 private:
+    bool serverStored;
+
     QSettings settings;
 
     IHashCalculator *hashCalculator;

@@ -7,8 +7,8 @@
 
 #include <qlogger.h>
 
-MediaFile::MediaFile(QObject *parent) :
-    QObject(parent), hashCalculator(NULL), fileSize(0), fileType(FILE_TYPE_UNKNOWN), timeout(0)
+MediaFile::MediaFile(bool serverStored, QObject *parent) :
+    QObject(parent), serverStored(serverStored), hashCalculator(NULL), fileSize(0), fileType(FILE_TYPE_UNKNOWN), timeout(0)
 {
     hashCalculator = HashCalculatorFactory::hashCalculatorInstance(settings.value("hash/type", "sha256").toString());
     Q_ASSERT(hashCalculator != NULL);
@@ -16,8 +16,8 @@ MediaFile::MediaFile(QObject *parent) :
 }
 
 
-MediaFile::MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QString path, quint64 size, quint32 timeout, QObject *parent):
-    QObject(parent),
+MediaFile::MediaFile(QString name, QString description, MEDIA_FILE_TYPE type, QString path, quint64 size, quint32 timeout, bool serverStored, QObject *parent):
+    QObject(parent), serverStored(serverStored),
     name(name), description(description), fileType(type), mediaFilePath(path), fileSize(size), timeout(timeout)
 {
 

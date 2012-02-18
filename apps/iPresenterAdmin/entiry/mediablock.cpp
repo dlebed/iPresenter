@@ -29,6 +29,18 @@ bool MediaBlock::addMediaFile(MediaFile *mediaFile) {
     return true;
 }
 
+QList<MediaFile *> MediaBlock::getMediaFilesToUpload() const {
+    QList<MediaFile *> result;
+
+    for (int i = 0; i < mediaFiles.size(); i++) {
+        if (!mediaFiles.at(i)->isServerStored()) {
+            result.append(mediaFiles.at(i));
+        }
+    }
+
+    return result;
+}
+
 QString MediaBlock::getBlockXml(bool &ok) {
     QDomDocument blockDocument;
     QDomElement blockElement = blockDocument.createElement("block");

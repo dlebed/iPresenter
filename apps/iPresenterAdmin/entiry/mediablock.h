@@ -19,6 +19,8 @@ public:
     bool addMediaFile(MediaFile *mediaFile);
     QList<MediaFile *> getMediaFilesList() const { return mediaFiles; }
 
+    QList<MediaFile *> getMediaFilesToUpload() const;
+
     void setName(const QString &name) { this->name = name; }
     QString getName() const { return name; }
 

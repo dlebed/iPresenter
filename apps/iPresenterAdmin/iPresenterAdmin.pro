@@ -15,13 +15,16 @@ SOURCES += main.cpp\
     ipresenteradmincontroller.cpp \
     dbconnectiondialog.cpp \
     entiry/mediablock.cpp \
-    entiry/mediafile.cpp
+    entiry/mediafile.cpp \
+    adminserverclientthread.cpp
 
 HEADERS  += mainwindow.h \
     ipresenteradmincontroller.h \
     dbconnectiondialog.h \
     entiry/mediablock.h \
-    entiry/mediafile.h
+    entiry/mediafile.h \
+    adminserverclientthread.h \
+    types.h
 
 FORMS    += mainwindow.ui \
     dbconnectiondialog.ui

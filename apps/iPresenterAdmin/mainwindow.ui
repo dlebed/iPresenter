@@ -123,16 +123,29 @@
            <property name="title">
             <string>Media block content</string>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <layout class="QVBoxLayout" name="verticalLayout_7">
             <item>
              <widget class="QSplitter" name="splitter_3">
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
-              <widget class="QListWidget" name="blockMediaList">
-               <property name="contextMenuPolicy">
-                <enum>Qt::ActionsContextMenu</enum>
-               </property>
+              <widget class="QWidget" name="">
+               <layout class="QVBoxLayout" name="verticalLayout_5">
+                <item>
+                 <widget class="QListWidget" name="blockMediaList">
+                  <property name="contextMenuPolicy">
+                   <enum>Qt::ActionsContextMenu</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="uploadChangesButton">
+                  <property name="text">
+                   <string>Upload block changes</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </widget>
               <widget class="QSplitter" name="splitter_2">
                <property name="orientation">

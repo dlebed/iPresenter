@@ -5,6 +5,7 @@
 #include <QSqlQuery>
 #include <QDomDocument>
 #include <QDomElement>
+#include <QMetaObject>
 
 #include <qlogger.h>
 
@@ -14,15 +15,30 @@
 #include <entiry/mediablock.h>
 
 IPresenterAdminController::IPresenterAdminController(QObject *parent) :
-    QObject(parent), mainWindow(NULL),
+    QObject(parent), mainWindow(NULL), adminServerClientThread(NULL),
     agentsGroupsModel(NULL), agentsModel(NULL), mediaBlocksModel(NULL),
-    currentMediaBlock(NULL), currentMediaFile(NULL)
+    currentMediaBlock(NULL), currentMediaFile(NULL),
+    progressDialog(NULL)
 {
     initView();
 
+
+    adminServerClientThread = new AdminServerClientThread();
+    Q_ASSERT(adminServerClientThread != NULL);
+    adminServerClientThread->start(QThread::LowPriority);
+
+    connect(adminServerClientThread, SIGNAL(processProgress(int)), this, SLOT(updateProgressDialog(int)), Qt::QueuedConnection);
+    connect(adminServerClientThread, SIGNAL(processEndedError(quint8)), this, SLOT(processEndedErrorHandler(quint8)), Qt::QueuedConnection);
+    connect(adminServerClientThread, SIGNAL(processEndedOk()), this, SLOT(processEndedOkHandler()), Qt::QueuedConnection);
 }
 
 IPresenterAdminController::~IPresenterAdminController() {
+    if (progressDialog != NULL) {
+        progressDialog->close();
+        delete progressDialog;
+        progressDialog = NULL;
+    }
+
     if (mainWindow == NULL) {
         mainWindow->close();
         delete mainWindow;
@@ -33,6 +49,12 @@ IPresenterAdminController::~IPresenterAdminController() {
 
     if (currentMediaFile == NULL)
         delete currentMediaFile;
+
+    if (adminServerClientThread != NULL) {
+        QMetaObject::invokeMethod(adminServerClientThread, "stop", Qt::QueuedConnection);
+        adminServerClientThread->wait();
+        delete adminServerClientThread;
+    }
 }
 
 void IPresenterAdminController::close() {
@@ -52,8 +74,15 @@ void IPresenterAdminController::initView() {
         connect(mainWindow, SIGNAL(addMediaBlock(QString,QString)), this, SLOT(addMediaBlockHandler(QString,QString)));
         connect(mainWindow, SIGNAL(addMediaFile(QString,QString,QString)), this, SLOT(addMediaFileHandler(QString,QString,QString)));
         connect(mainWindow, SIGNAL(mediaFileSelected(int,QString)), this, SLOT(mediaFileSelectedHandler(int,QString)));
+        connect(mainWindow, SIGNAL(uploadBlockChanges()), this, SLOT(uploadBlockChangesHandler()));
 
         mainWindow->show();
+
+        progressDialog = new QProgressDialog(mainWindow);
+        Q_ASSERT(progressDialog != NULL);
+        progressDialog->setCancelButton(NULL);
+        progressDialog->setMaximum(100);
+        connect(progressDialog, SIGNAL(finished(int)), this, SLOT(progressDialogHided()));
     }
 }
 
@@ -102,6 +131,9 @@ void IPresenterAdminController::connectToDB() {
     ipresenterDB.setDatabaseName(dbConnectionDialog->getDatabase());
     ipresenterDB.setUserName(dbConnectionDialog->getUser());
     ipresenterDB.setPassword(dbConnectionDialog->getPassword());
+
+    Q_ASSERT(adminServerClientThread != NULL);
+    adminServerClientThread->setServerParameters(dbConnectionDialog->getHost(), settings.value("network/server_port", 5116).toUInt());
 
     delete dbConnectionDialog;
 
@@ -211,7 +243,7 @@ bool IPresenterAdminController::getBlockFiles(QDomDocument &blockDocument) {
 
         while (!imageElement.isNull()) {
             if (!imageElement.attribute("id").isNull() && !imageElement.attribute("hash").isNull()) {
-                MediaFile *imageFile = new MediaFile();
+                MediaFile *imageFile = new MediaFile(true);
                 imageFile->setName(imageElement.attribute("id"));
                 imageFile->setHash(imageElement.attribute("hash"));
                 imageFile->setDescription(imageElement.attribute("desc"));
@@ -233,7 +265,7 @@ bool IPresenterAdminController::getBlockFiles(QDomDocument &blockDocument) {
 
     while (!movieElement.isNull()) {
         if (!movieElement.attribute("id").isNull() && !movieElement.attribute("hash").isNull()) {
-            MediaFile *movieFile = new MediaFile();
+            MediaFile *movieFile = new MediaFile(true);
             movieFile->setName(movieElement.attribute("id"));
             movieFile->setHash(movieElement.attribute("hash"));
             movieFile->setDescription(movieElement.attribute("desc"));
@@ -302,7 +334,7 @@ void IPresenterAdminController::addMediaFileHandler(QString filePath, QString na
     if (currentMediaBlock == NULL)
         return;
 
-    MediaFile *mediaFile = new MediaFile(this);
+    MediaFile *mediaFile = new MediaFile(false);
     Q_ASSERT(mediaFile != NULL);
 
     if (mediaFile->setFile(filePath, name, description) == false) {
@@ -314,9 +346,11 @@ void IPresenterAdminController::addMediaFileHandler(QString filePath, QString na
     // TODO add media file to DB and server
 
     if (currentMediaBlock != NULL) {
+
         currentMediaFile = mediaFile;
         currentMediaBlock->addMediaFile(currentMediaFile);
         updateBlockFilesList();
+
     }
 
 
@@ -337,6 +371,73 @@ void IPresenterAdminController::mediaFileSelectedHandler(int row, QString name) 
                                          currentMediaFile->getFileTypeStr(), currentMediaFile->getFileSize(),
                                          currentMediaFile->getHash(), currentMediaFile->getTimeout());
         }
+    }
+
+
+}
+
+void IPresenterAdminController::processEndedErrorHandler(quint8 error) {
+
+}
+
+void IPresenterAdminController::processEndedOkHandler() {
+    nextUploadFile();
+
+
+}
+
+void IPresenterAdminController::showProgressDialog(QString label) {
+    progressDialog->setLabelText(label);
+    mainWindow->setEnabled(false);
+    progressDialog->setEnabled(true);
+    progressDialog->exec();
+}
+
+void IPresenterAdminController::progressDialogHided() {
+    mainWindow->setEnabled(true);
+}
+
+void IPresenterAdminController::updateProgressDialog(int value) {
+    if (progressDialog->isVisible()) {
+        progressDialog->setValue(value);
+    }
+}
+
+void IPresenterAdminController::uploadBlockChangesHandler() {
+    if (currentMediaBlock == NULL) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media block is not choosen";
+        QMessageBox::warning(mainWindow, tr("Can't upload files"), tr("Media block is not selected!"), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    filesToUpload = currentMediaBlock->getMediaFilesToUpload();
+
+    if (filesToUpload.isEmpty()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "There is no files to upload";
+        QMessageBox::warning(mainWindow, tr("Can't upload files"), tr("There is no media files to upload!"), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    currentUploadFileIndex = 0;
+
+    nextUploadFile();
+}
+
+void IPresenterAdminController::nextUploadFile() {
+    if (filesToUpload.size() <= currentUploadFileIndex) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media block file upload is finished";
+        progressDialog->accept();
+        mainWindow->setEnabled(true);
+        QMessageBox::information(mainWindow, tr("Files uploaded successfully!"), tr("All files uploaded successfully!"), QMessageBox::Ok, QMessageBox::Ok);
+    } else {
+        MediaFile *mediaFile = filesToUpload.at(currentUploadFileIndex++);
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Uploading next block file:" << mediaFile->getFilePath();
+
+        QMetaObject::invokeMethod(adminServerClientThread, "uploadMediaFile", Qt::QueuedConnection,
+                                  Q_ARG(QString, mediaFile->getFilePath()), Q_ARG(QString, mediaFile->getName()), Q_ARG(QString, mediaFile->getDescription()),
+                                  Q_ARG(quint8, mediaFile->getFileType()));
+
+        showProgressDialog("Uploading file " + mediaFile->getFilePath() + " to server...");
     }
 
 

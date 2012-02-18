@@ -154,13 +154,13 @@ void MainWindow::on_addMediaFileAction_triggered()
     filePath = fileInfo.absoluteFilePath();
 
     bool ok;
-    QString mediaFileName = QInputDialog::getText(this, tr("Enter media file name"), tr("Block name:"), QLineEdit::Normal, fileInfo.baseName(), &ok);
+    QString mediaFileName = QInputDialog::getText(this, tr("Enter media file name"), tr("File ID:"), QLineEdit::Normal, fileInfo.baseName(), &ok);
 
     if (!ok || mediaFileName.isEmpty()) {
         return;
     }
 
-    QString mediaFileDescription = QInputDialog::getText(this, tr("Enter media file description"), tr("Block description:"), QLineEdit::Normal, "", &ok);
+    QString mediaFileDescription = QInputDialog::getText(this, tr("Enter media file description"), tr("File description:"), QLineEdit::Normal, "", &ok);
 
     if (!ok || mediaFileDescription.isEmpty()) {
         return;
@@ -179,4 +179,14 @@ void MainWindow::on_blockMediaList_activated(const QModelIndex &index)
 void MainWindow::on_saveMediaFileDataButton_clicked()
 {
     emit saveMediaFileData(ui->mediaNameEdit->text(), ui->mediaDescriptionEdit->toPlainText(), ui->mediaTimeoutEdit->value());
+}
+
+void MainWindow::on_blocksRefreshButton_clicked()
+{
+
+}
+
+void MainWindow::on_uploadChangesButton_clicked()
+{
+    emit uploadBlockChanges();
 }

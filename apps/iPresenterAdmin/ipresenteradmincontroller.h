@@ -7,10 +7,13 @@
 #include <QSqlQueryModel>
 #include <QSqlRelationalTableModel>
 #include <QSettings>
+#include <QProgressDialog>
 
 #include "mainwindow.h"
 #include <entiry/mediablock.h>
 #include <entiry/mediafile.h>
+
+#include <adminserverclientthread.h>
 
 class IPresenterAdminController : public QObject
 {
@@ -43,10 +46,24 @@ protected slots:
     void addMediaFileHandler(QString filePath, QString name, QString description);
     void mediaFileSelectedHandler(int row, QString name);
 
+    void processEndedErrorHandler(quint8 error);
+    void processEndedOkHandler();
+
+    void showProgressDialog(QString label);
+    void progressDialogHided();
+
+    void updateProgressDialog(int value);
+
+    void uploadBlockChangesHandler();
+
+    void nextUploadFile();
+
 
 private:
     MainWindow *mainWindow;
     QSettings settings;
+
+    AdminServerClientThread *adminServerClientThread;
 
     // Models
     QSqlTableModel *agentsGroupsModel;
@@ -56,6 +73,11 @@ private:
 
     MediaBlock *currentMediaBlock;
     MediaFile *currentMediaFile;
+
+    QProgressDialog *progressDialog;
+
+    QList<MediaFile *> filesToUpload;
+    int currentUploadFileIndex;
     
 };
 
