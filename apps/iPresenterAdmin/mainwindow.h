@@ -63,6 +63,8 @@ private slots:
 
     void on_uploadChangesButton_clicked();
 
+    void on_removeMediaFileAction_triggered();
+
 signals:
     void postAgentsGroupsChanges();
     void postAgentsChanges();
@@ -73,6 +75,8 @@ signals:
     void mediaFileSelected(int row, QString name);
     void saveMediaFileData(QString name, QString description, quint32 timeout);
     void uploadBlockChanges();
+    void removeMediaFile(QString name, int row);
+    void blockRefresh();
 
 private:
     QSettings settings;

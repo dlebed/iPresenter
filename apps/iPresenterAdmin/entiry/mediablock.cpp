@@ -29,6 +29,28 @@ bool MediaBlock::addMediaFile(MediaFile *mediaFile) {
     return true;
 }
 
+bool MediaBlock::removeMediaFile(QString hash) {
+
+    for (int i = 0; i < mediaFiles.size(); i++) {
+        if (mediaFiles.at(i)->getHash() == hash) {
+            delete mediaFiles.at(i);
+            mediaFiles.removeAt(i);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool MediaBlock::removeMediaFile(int pos) {
+    if (pos < mediaFiles.size()) {
+        mediaFiles.removeAt(pos);
+        return true;
+    }
+
+    return false;
+}
+
 QList<MediaFile *> MediaBlock::getMediaFilesToUpload() const {
     QList<MediaFile *> result;
 
@@ -52,14 +74,26 @@ QString MediaBlock::getBlockXml(bool &ok) {
     blockElement.setAttribute("desc", description);
 
     QDomElement blockElementsElement = blockDocument.createElement("elements");
+    QDomElement currentImagesElement;
     blockElement.appendChild(blockElementsElement);
 
     for (int i = 0; i < mediaFiles.size(); i++) {
         MediaFile *mediaFile = mediaFiles.at(i);
         QDomElement mediaElement = mediaFile->makeElement(blockDocument);
 
-        if (!mediaElement.isNull())
-            blockElementsElement.appendChild(mediaElement);
+        if (!mediaElement.isNull()) {
+            if (mediaFile->getFileType() == MediaFile::FILE_TYPE_IMAGE) {
+                if (currentImagesElement.isNull()) {
+                    currentImagesElement = blockDocument.createElement("images");
+                    blockElementsElement.appendChild(currentImagesElement);
+                }
+
+                currentImagesElement.appendChild(mediaElement);
+            } else {
+                currentImagesElement = QDomElement();
+                blockElementsElement.appendChild(mediaElement);
+            }
+        }
     }
 
     ok = true;

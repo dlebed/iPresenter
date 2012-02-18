@@ -76,6 +76,8 @@ void IPresenterAdminController::initView() {
         connect(mainWindow, SIGNAL(addMediaFile(QString,QString,QString)), this, SLOT(addMediaFileHandler(QString,QString,QString)));
         connect(mainWindow, SIGNAL(mediaFileSelected(int,QString)), this, SLOT(mediaFileSelectedHandler(int,QString)));
         connect(mainWindow, SIGNAL(uploadBlockChanges()), this, SLOT(uploadBlockChangesHandler()));
+        connect(mainWindow, SIGNAL(removeMediaFile(QString,int)), this, SLOT(removeMdeiaFileHandler(QString,int)));
+        connect(mainWindow, SIGNAL(blockRefresh()), this, SLOT(blockRefreshHandler()));
 
         mainWindow->show();
 
@@ -105,6 +107,7 @@ void IPresenterAdminController::updateBlockFilesList() {
 
     if (currentMediaBlock == NULL) {
         mainWindow->setMediaFilesList(fileNamesList);
+        return;
     }
 
     QList<MediaFile *> mediaFilesList = currentMediaBlock->getMediaFilesList();
@@ -184,7 +187,7 @@ void IPresenterAdminController::connectToDB() {
         mediaBlocksModel = new QSqlQueryModel(this);
     }
 
-    mediaBlocksModel->setQuery("SELECT id, name, version FROM blocks", ipresenterDB);
+    mediaBlocksModel->setQuery("SELECT id, name, version FROM blocks ORDER BY name", ipresenterDB);
     mediaBlocksModel->setHeaderData(0, Qt::Horizontal, tr("ID"));
     mediaBlocksModel->setHeaderData(1, Qt::Horizontal, tr("Name"));
     mediaBlocksModel->setHeaderData(2, Qt::Horizontal, tr("Version"));
@@ -328,7 +331,26 @@ void IPresenterAdminController::mediaBlockSelectedHandler(int row) {
 }
 
 void IPresenterAdminController::addMediaBlockHandler(QString name, QString description) {
+    if (!ipresenterDB.isValid()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't add media block: DB connection failed";
 
+        QMessageBox::warning(mainWindow, "Upload error!", "Error while adding media block to DB", QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    QSqlQuery mediaExistQuery(ipresenterDB);
+    QString blockXML = "<block desc=\"" + description + "\" id=\"" + name + "\"/>";
+
+    if (!mediaExistQuery.exec("INSERT INTO blocks (name, description, data) VALUES ('" + name + "', '" + description + "', '" + blockXML + "');")) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't add media block: query error:" << mediaExistQuery.lastError().text();
+
+        QMessageBox::warning(mainWindow, "Block create error!", "Error adding block info info to DB", QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    mediaBlocksModel->setQuery("SELECT id, name, version FROM blocks ORDER BY name", ipresenterDB);
+
+    QMessageBox::information(mainWindow, tr("Block added successfully!"), tr("Block added to DB successfully!"), QMessageBox::Ok, QMessageBox::Ok);
 }
 
 void IPresenterAdminController::addMediaFileHandler(QString filePath, QString name, QString description) {
@@ -377,6 +399,30 @@ void IPresenterAdminController::mediaFileSelectedHandler(int row, QString name) 
 
 }
 
+void IPresenterAdminController::removeMdeiaFileHandler(QString name, int row) {
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media file to remove" << row << name;
+
+    if (currentMediaBlock != NULL) {
+        MediaFile *mediaFile = currentMediaBlock->getMediaFilesList().at(row);
+
+        if (mediaFile != NULL && mediaFile->getName() == name) {
+            currentMediaBlock->removeMediaFile(row);
+        }
+
+        currentMediaFile = NULL;
+
+        mainWindow->setMediaFileData("", "", "", 0, "", 0);
+
+
+        updateBlockFilesList();
+    }
+}
+
+void IPresenterAdminController::blockRefreshHandler() {
+    if (ipresenterDB.isValid())
+        mediaBlocksModel->setQuery("SELECT id, name, version FROM blocks ORDER BY name", ipresenterDB);
+}
+
 void IPresenterAdminController::processEndedErrorHandler(quint8 error) {
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media block file upload is stopped with error" << error;
     progressDialog->accept();
@@ -386,9 +432,50 @@ void IPresenterAdminController::processEndedErrorHandler(quint8 error) {
 }
 
 void IPresenterAdminController::processEndedOkHandler() {
+    // Adding file data to DB
+    MediaFile *mediaFile = filesToUpload.at(currentUploadFileIndex - 1);
+
+    if (!ipresenterDB.isValid()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't add media file: DB connection failed";
+        progressDialog->accept();
+        mainWindow->setEnabled(true);
+
+        QMessageBox::warning(mainWindow, "Upload error!", "Error while adding file info to DB " + mediaFile->getFilePath(), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    QSqlQuery mediaExistQuery(ipresenterDB);
+
+    if (!mediaExistQuery.exec("SELECT 1 FROM media WHERE hash = '" + mediaFile->getHash() + "';")) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't media data: query error:" << mediaExistQuery.lastError().text();
+        progressDialog->accept();
+        mainWindow->setEnabled(true);
+
+        QMessageBox::warning(mainWindow, "Upload error!", "Error while adding file info to DB " + mediaFile->getFilePath(), QMessageBox::Ok, QMessageBox::Ok);
+        return;
+    }
+
+    if (mediaExistQuery.size() < 1) {
+        QSqlQuery mediaFileQuery(ipresenterDB);
+
+        if (!mediaFileQuery.exec(QString("INSERT INTO media (type, hash, size, name, description) VALUES ('") +  mediaFile->getFileTypeStr() + "', '" +
+                                 mediaFile->getHash() + "', " + QString::number(mediaFile->getFileSize()) + ", '" + mediaFile->getName() + "', '" + mediaFile->getDescription() + "');")) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't add media file into: query error:" << mediaFileQuery.lastError().text();
+
+            progressDialog->accept();
+            mainWindow->setEnabled(true);
+
+            QMessageBox::warning(mainWindow, "Upload error!", "Error while adding file info to DB " + mediaFile->getFilePath(), QMessageBox::Ok, QMessageBox::Ok);
+            return;
+        }
+    } else {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "File info exists";
+    }
+
+
+
+
     nextUploadFile();
-
-
 }
 
 void IPresenterAdminController::showProgressDialog(QString label) {
@@ -418,8 +505,13 @@ void IPresenterAdminController::uploadBlockChangesHandler() {
     filesToUpload = currentMediaBlock->getMediaFilesToUpload();
 
     if (filesToUpload.isEmpty()) {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "There is no files to upload";
-        QMessageBox::warning(mainWindow, tr("Can't upload files"), tr("There is no media files to upload!"), QMessageBox::Ok, QMessageBox::Ok);
+        //QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "There is no files to upload";
+        //QMessageBox::warning(mainWindow, tr("Can't upload files"), tr("There is no media files to upload!"), QMessageBox::Ok, QMessageBox::Ok);
+
+        if (!uploadBlockXmlChanges())
+            return;
+
+        QMessageBox::information(mainWindow, tr("Block update"), tr("Block XML updated successfully!"), QMessageBox::Ok, QMessageBox::Ok);
         return;
     }
 
@@ -431,6 +523,10 @@ void IPresenterAdminController::uploadBlockChangesHandler() {
 void IPresenterAdminController::nextUploadFile() {
     if (filesToUpload.size() <= currentUploadFileIndex) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Media block file upload is finished";
+
+        if (!uploadBlockXmlChanges())
+            return;
+
         progressDialog->accept();
         mainWindow->setEnabled(true);
         QMessageBox::information(mainWindow, tr("Files uploaded successfully!"), tr("All files uploaded successfully!"), QMessageBox::Ok, QMessageBox::Ok);
@@ -449,4 +545,33 @@ void IPresenterAdminController::nextUploadFile() {
     }
 
 
+}
+
+bool IPresenterAdminController::uploadBlockXmlChanges() {
+    bool ok;
+    QString newBlockXML = currentMediaBlock->getBlockXml(ok);
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "New block XML:" << newBlockXML;
+
+    if (!ipresenterDB.isValid()) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't change block XML: DB connection failed";
+        progressDialog->accept();
+        mainWindow->setEnabled(true);
+
+        QMessageBox::warning(mainWindow, "Upload error!", "Error changing block XML in DB" + currentMediaBlock->getName(), QMessageBox::Ok, QMessageBox::Ok);
+        return false;
+    }
+
+    QSqlQuery blockChangeQuery(ipresenterDB);
+
+    if (!blockChangeQuery.exec("UPDATE blocks SET data = '" + newBlockXML + "', version = version + 1 WHERE name = '" + currentMediaBlock->getName() + "';")) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't change block XML: query error:" << blockChangeQuery.lastError().text();
+        progressDialog->accept();
+        mainWindow->setEnabled(true);
+
+        QMessageBox::warning(mainWindow, "Upload error!", "Error while changing block XML in DB", QMessageBox::Ok, QMessageBox::Ok);
+        return false;
+    }
+
+    return true;
 }

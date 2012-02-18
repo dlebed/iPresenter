@@ -170,7 +170,8 @@ uint8_t AdminCommandExecutor::initDataUpload(QTcpSocket *tcpSocket, MediaHashCmd
             resultCode = ADMIN_OK;
         }
     } else {
-        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Media file exists in DB:" << hash;
+        resultCode = ADMIN_FILE_EXIST;
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Media file exists in DB:" << hash;
     }
 
     if (resultCode == ADMIN_OK) {

@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->mediaBlocksTableView->addAction(ui->addMediaBlockAction);
     ui->blockMediaList->addAction(ui->addMediaFileAction);
+    ui->blockMediaList->addAction(ui->removeMediaFileAction);
 }
 
 MainWindow::~MainWindow()
@@ -183,10 +184,15 @@ void MainWindow::on_saveMediaFileDataButton_clicked()
 
 void MainWindow::on_blocksRefreshButton_clicked()
 {
-
+    emit blockRefresh();
 }
 
 void MainWindow::on_uploadChangesButton_clicked()
 {
     emit uploadBlockChanges();
+}
+
+void MainWindow::on_removeMediaFileAction_triggered()
+{
+    emit removeMediaFile(ui->blockMediaList->item(ui->blockMediaList->currentRow())->text(), ui->blockMediaList->currentRow());
 }

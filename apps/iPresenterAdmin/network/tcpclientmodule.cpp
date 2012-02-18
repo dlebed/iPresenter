@@ -45,17 +45,23 @@ quint8 TCPClientModule::uploadFile(const QString &fileHash, MEDIA_TYPES fileType
         return UPLOAD_CONNECTION_FAILED;
     }
 
-    if ((res = initDataUpload(&socket, fileHash.toAscii(), fileType)) != E_OK) {
+    if ((res = initDataUpload(&socket, fileHash.toAscii(), fileType)) == ADMIN_NACK) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to initiate data upload to server";
         return UPLOAD_ERROR;
     }
 
-    if ((res = uploadMediaFileData(&socket, fileHash.toAscii(), fileType, filePath)) != E_OK) {
+    if (res == ADMIN_FILE_EXIST) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Media file exists on a server" << fileSize << fileHash << filePath;
+
+        return FILE_EXIST;
+    }
+
+    if (!uploadMediaFileData(&socket, fileHash.toAscii(), fileType, filePath)) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Unable to upload data to server";
         return UPLOAD_ERROR;
     }
 
-    if ((res = mediaDataVerify(&socket, fileHash.toAscii(), fileType, filePath, fileSize)) != E_OK) {
+    if (!mediaDataVerify(&socket, fileHash.toAscii(), fileType, filePath, fileSize)) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << "Uploaded data verification error...";
         return UPLOAD_ERROR;
     }
@@ -65,7 +71,7 @@ quint8 TCPClientModule::uploadFile(const QString &fileHash, MEDIA_TYPES fileType
     return E_OK;
 }
 
-bool TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType) {
+quint8 TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType) {
     NetworkProtoParser protoParser;
     uint64_t bytesToRead;
     int64_t bytesReaded;
@@ -82,18 +88,18 @@ bool TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &ha
     mediaHashCmd.mediaType = fileType;
 
     if (protoParser.appendPayloadData((uint8_t *)&mediaHashCmd, sizeof(mediaHashCmd)) != NetworkProtoParser::E_OK)
-        return false;
+        return ADMIN_NACK;
 
     if (protoParser.packetData(dataBuf) != NetworkProtoParser::E_OK)
-        return false;
+        return ADMIN_NACK;
 
     if (tcpSocket->write(dataBuf) != dataBuf.size())
-        return false;
+        return ADMIN_NACK;
 
     dataBuf.clear();
 
     if (!tcpSocket->waitForBytesWritten())
-        return false;
+        return ADMIN_NACK;
 
     // Packet written. Waiting for reply
 
@@ -103,7 +109,7 @@ bool TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &ha
         if (tcpSocket->bytesAvailable() <= 0) {
             if (!tcpSocket->waitForReadyRead(readTimeout)) {
                 QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Timeout reading header data from socket.";
-                return false;
+                return ADMIN_NACK;
             }
         }
 
@@ -115,13 +121,13 @@ bool TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &ha
         if (bytesReaded <= 0) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Error reading header data from socket.";
             delete [] packetBuf;
-            return false;
+            return ADMIN_NACK;
         }
 
         if ((res = protoParser.bytesReaded(packetBuf, bytesReaded)) != NetworkProtoParser::E_OK) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Error parsing packet:" << res;
             delete [] packetBuf;
-            return false;
+            return ADMIN_NACK;
         }
 
         delete [] packetBuf;
@@ -131,26 +137,31 @@ bool TCPClientModule::initDataUpload(QTcpSocket *tcpSocket, const QByteArray &ha
     packet_size_t payloadSize;
 
     if (protoParser.payloadSize(payloadSize) != NetworkProtoParser::E_OK)
-        return false;
+        return ADMIN_NACK;
 
     if (payloadSize >= sizeof(cmdExecResult)) {
         if (protoParser.payloadData(dataBuf) != NetworkProtoParser::E_OK)
-            return false;
+            return ADMIN_NACK;
 
         memcpy(&cmdExecResult, dataBuf.data(), sizeof(cmdExecResult));
 
+        if (cmdExecResult == ADMIN_FILE_EXIST) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "File exists on a server";
+            return ADMIN_FILE_EXIST;
+        }
+
         if (cmdExecResult != ADMIN_OK) {
             QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Nack received from server:" << cmdExecResult;
-            return false;
+            return ADMIN_NACK;
         }
 
     } else {
-        return false;
+        return ADMIN_NACK;
     }
 
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "File upload initiation succeed";
 
-    return true;
+    return ADMIN_OK;
 }
 
 bool TCPClientModule::uploadMediaFileData(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType, const QString &filePath) {

@@ -17,6 +17,8 @@ public:
     ~MediaBlock();
 
     bool addMediaFile(MediaFile *mediaFile);
+    bool removeMediaFile(QString hash);
+    bool removeMediaFile(int pos);
     QList<MediaFile *> getMediaFilesList() const { return mediaFiles; }
 
     QList<MediaFile *> getMediaFilesToUpload() const;

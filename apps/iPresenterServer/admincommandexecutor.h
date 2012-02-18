@@ -38,6 +38,7 @@ public:
     
     enum ADMIN_RESULT_CODES {
         ADMIN_OK                =   0x00,
+        ADMIN_FILE_EXIST        =   0x01,
         ADMIN_NACK              =   0xFF
     };
 

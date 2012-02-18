@@ -46,6 +46,9 @@ protected slots:
     void addMediaFileHandler(QString filePath, QString name, QString description);
     void mediaFileSelectedHandler(int row, QString name);
 
+    void removeMdeiaFileHandler(QString name, int row);
+    void blockRefreshHandler();
+
     void processEndedErrorHandler(quint8 error);
     void processEndedOkHandler();
 
@@ -58,6 +61,7 @@ protected slots:
 
     void nextUploadFile();
 
+    bool uploadBlockXmlChanges();
 
 private:
     MainWindow *mainWindow;

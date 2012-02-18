@@ -18,11 +18,13 @@ public:
         UPLOAD_CONNECTION_FAILED    =       0x01,
 		UPLOAD_NO_SUCH_FILE         =       0x02,
 		UPLOAD_ERROR                =       0x03,
-        FILE_READ_ERROR             =       0x04
+        FILE_READ_ERROR             =       0x04,
+        FILE_EXIST                  =       0x05
     };
 
     enum ADMIN_RESULT_CODES {
         ADMIN_OK                =   0x00,
+        ADMIN_FILE_EXIST        =   0x01,
         ADMIN_NACK              =   0xFF
     };
 
@@ -49,7 +51,7 @@ public slots:
 
     quint8 uploadFile(const QString &fileHash, MEDIA_TYPES fileType, const QString &filePath);
 
-    bool initDataUpload(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType);
+    quint8 initDataUpload(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType);
     bool uploadMediaFileData(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType, const QString &filePath);
     bool mediaDataVerify(QTcpSocket *tcpSocket, const QByteArray &hashData, MEDIA_TYPES fileType, const QString &filePath, media_size_t fileSize);
 

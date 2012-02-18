@@ -35,9 +35,9 @@ void AdminServerClientThread::uploadMediaFile(QString filePath, QString hash, QS
         return;
     }
 
-    quint8 res;
+    quint8 res = tcpClientModule.uploadFile(hash, (MEDIA_TYPES)type, filePath);
 
-    if ((res = tcpClientModule.uploadFile(hash, (MEDIA_TYPES)type, filePath)) == E_OK) {
+    if (res == TCPClientModule::E_OK || res == TCPClientModule::FILE_EXIST) {
         emit processEndedOk();
     } else {
         emit processEndedError(res);
