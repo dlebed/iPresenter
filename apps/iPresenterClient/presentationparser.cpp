@@ -137,6 +137,17 @@ QDomDocument PresentationParser::nextBlock() {
     return blockDocument;
 }
 
+QDomDocument PresentationParser::actionsDocument() {
+    QDomDocument actionsDocument;
+
+    if (!currentPresentation.isNull()) {
+        QDomNode rootActionsNode = actionsDocument.importNode(currentPresentation.documentElement().firstChildElement("actions"), true);
+        actionsDocument.appendChild(rootActionsNode);
+    }
+
+    return actionsDocument;
+}
+
 schedule_version_t PresentationParser::presentationVersion() const {
     if (currentPresentation.isNull()) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_ERROR) << __FUNCTION__ << "Can't get presentation version:" << currentPresentation.toText().data();

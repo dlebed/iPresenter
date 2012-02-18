@@ -28,6 +28,8 @@ public:
     quint8 checkForNewTimePeriod();
     
     QDomDocument nextBlock();
+
+    QDomDocument actionsDocument();
     
     schedule_version_t presentationVersion() const;
 

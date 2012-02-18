@@ -11,7 +11,7 @@
 PresentationController::PresentationController(QObject *parent) :
     QObject(parent),
     imageView(NULL), imageViewController(NULL),
-    blockController(NULL), moviePlayerController(NULL), presentationParser(NULL)
+    blockController(NULL), moviePlayerController(NULL), presentationParser(NULL), commandExecutor(NULL)
 {
     initObjects();
 }
@@ -35,6 +35,9 @@ void PresentationController::initObjects() {
     moviePlayerController = new MoviePlayerController();
     Q_ASSERT(moviePlayerController != NULL);
     
+    commandExecutor = new CommandExecutor();
+    Q_ASSERT(commandExecutor != NULL);
+    commandExecutor->loadHandlers();
     
     blockController = new BlockController(imageViewController, moviePlayerController, this);
     Q_ASSERT(blockController != NULL);
@@ -64,6 +67,11 @@ void PresentationController::initObjects() {
 }
 
 void PresentationController::freeObjects() {
+    if (commandExecutor != NULL) {
+        delete commandExecutor;
+        commandExecutor = NULL;
+    }
+
     if (blockController != NULL){
         delete blockController;
         blockController = NULL;
@@ -123,6 +131,8 @@ void PresentationController::loadInitialBlock() {
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "choose:" << hex << res;
     
     // ----
+
+    commandExecutor->setActionsDocument(presentationParser->actionsDocument());
     
     QDomDocument nextBlock = presentationParser->nextBlock();
     
@@ -215,6 +225,8 @@ void PresentationController::newScheduleLoadedHandler(const QString &scheduleDoc
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_TRACE) << __FUNCTION__ << "Presentation file saved to disc";
 
     if (res == PresentationParser::E_OK) {
+        commandExecutor->setActionsDocument(presentationParser->actionsDocument());
+
         QDomDocument nextBlock = presentationParser->nextBlock();
 
         if (!nextBlock.isNull()) {

@@ -12,6 +12,7 @@
 #include <blockcontroller.h>
 #include <movieplayercontroller.h>
 #include <presentationparser.h>
+#include <syscontrol/commandexecutor.h>
 
 class PresentationController : public QObject
 {
@@ -56,8 +57,11 @@ private:
     BlockController *blockController;
     MoviePlayerController *moviePlayerController;
     PresentationParser *presentationParser;
+    CommandExecutor *commandExecutor;
 
     QTimer newPresentationCheckTimer;
+
+
 };
 
 #endif // PRESENTATIONCONTROLLER_H
