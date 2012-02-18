@@ -14,12 +14,15 @@ extern "C" {
 }
 
 #include "agentsserver.h"
+#include "adminserver.h"
 
 #include "db/dbproxyfactory.h"
 
 #define DEFAULT_AGENTS_PORT     5115
+#define DEFAULT_ADMIN_PORT      5116
 
 AgentsServer *agentsServer = NULL;
+AdminServer *adminServer = NULL;
 
 void sigint_handler(int signal) {
     if (signal == 2) {        
@@ -27,16 +30,30 @@ void sigint_handler(int signal) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_WARN) << __FUNCTION__ << "Catched SIGINT. Exiting...";
         
         if (agentsServer != NULL) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Stoppong agents server...";
             AgentsServer * finishingAgentsServer = agentsServer;
             agentsServer->close();
             //agentsServer->waitForThreads();
             agentsServer = NULL;
             delete finishingAgentsServer;
-            
-            exit(0);
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Agents server stopped";
         } else {
             exit(2);
         }
+
+        if (adminServer != NULL) {
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Stopping admin server...";
+            AdminServer * finishingAdminServer = adminServer;
+            adminServer->close();
+            //adminServer->waitForThreads();
+            adminServer = NULL;
+            delete finishingAdminServer;
+            QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Admin server stopped";
+        } else {
+            exit(2);
+        }
+
+        exit(0);
     }
 }
 
@@ -68,8 +85,18 @@ int main(int argc, char *argv[]) {
         QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_FATAL) << __FUNCTION__ << "Unable to start listening agents server:" << agentsServer->errorString();
         return 1;
     }
-    
+
     QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Agents TCP server started. Port:" << agentsServer->serverPort();
+
+    adminServer = new AdminServer();
+    Q_ASSERT(adminServer != NULL);
+
+    if (!adminServer->listen(QHostAddress::Any, settings.value("admin/server_port", DEFAULT_ADMIN_PORT).toUInt())) {
+        QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_FATAL) << __FUNCTION__ << "Unable to start listening admin server:" << adminServer->errorString();
+        return 1;
+    }
+
+    QLogger(QLogger::INFO_SYSTEM, QLogger::LEVEL_INFO) << __FUNCTION__ << "Admin TCP server started. Port:" << adminServer->serverPort();
     
     return a.exec();
 }

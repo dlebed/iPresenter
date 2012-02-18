@@ -8,11 +8,9 @@ enum MEDIA_TYPES    {
     MEDIA_MOVIE         =   0x02
 };
 
-enum AGENT_COMMANDS  {
-    AGENT_GET_SCHEDULE_VERSION      =   0x00,
-    AGENT_GET_SCHEDULE_DATA         =   0x01,
-    AGENT_GET_MEDIA_SIZE            =   0x02,
-    AGENT_GET_MEDIA_DATA            =   0x03
+enum ADMIN_COMMANDS {
+    ADMIN_GET_MEDIA_DATA            =   0x01,
+
 };
 
 typedef uint32_t    schedule_version_t;
