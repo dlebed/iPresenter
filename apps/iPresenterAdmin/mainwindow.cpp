@@ -21,6 +21,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mediaBlocksTableView->addAction(ui->addMediaBlockAction);
     ui->blockMediaList->addAction(ui->addMediaFileAction);
     ui->blockMediaList->addAction(ui->removeMediaFileAction);
+
+    ui->previewBox->hide();
 }
 
 MainWindow::~MainWindow()

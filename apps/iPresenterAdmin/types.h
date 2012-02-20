@@ -1,0 +1,33 @@
+#ifndef TYPES_H
+#define TYPES_H
+
+#include <stdint.h>
+
+enum MEDIA_TYPES    {
+    MEDIA_IMAGE         =   0x01,
+    MEDIA_MOVIE         =   0x02
+};
+
+enum AGENT_COMMANDS  {
+    AGENT_GET_SCHEDULE_VERSION      =   0x00,
+    AGENT_GET_SCHEDULE_DATA         =   0x01,
+    AGENT_GET_MEDIA_SIZE            =   0x02,
+    AGENT_GET_MEDIA_DATA            =   0x03
+};
+
+enum ADMIN_COMMANDS {
+    ADMIN_GET_MEDIA_DATA            =   0x01,
+    ADMIN_INIT_DATA_UPLOAD          =   0x02,
+    ADMIN_DATA_UPLOAD               =   0x03,
+    ADMIN_DATA_UPLOAD_VERIFY        =   0x04
+
+};
+
+typedef uint32_t    schedule_version_t;
+typedef uint64_t    media_size_t;
+
+#define AGENT_ID_LEN                128
+
+
+
+#endif // TYPES_H
