@@ -18,7 +18,8 @@ SOURCES += main.cpp\
     entiry/mediafile.cpp \
     adminserverclientthread.cpp \
     network/tcpclientmodule.cpp \
-    ../iPresenterServer/networkprotoparser.cpp
+    ../iPresenterServer/networkprotoparser.cpp \
+    entiry/schedule.cpp
 
 HEADERS  += mainwindow.h \
     ipresenteradmincontroller.h \
@@ -28,7 +29,8 @@ HEADERS  += mainwindow.h \
     adminserverclientthread.h \
     types.h \
     network/tcpclientmodule.h \
-    ../iPresenterServer/networkprotoparser.h
+    ../iPresenterServer/networkprotoparser.h \
+    entiry/schedule.h
 
 FORMS    += mainwindow.ui \
     dbconnectiondialog.ui

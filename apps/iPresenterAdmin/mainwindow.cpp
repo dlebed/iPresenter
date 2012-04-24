@@ -33,6 +33,9 @@ MainWindow::~MainWindow()
 bool MainWindow::setAgentsGroupsModel(QAbstractItemModel * model) {
     ui->agentsGroupsTableView->setModel(model);
     ui->agentsGroupsTableView->setColumnHidden(0, true);
+
+    ui->agentsGroupsScheduleTableView->setModel(model);
+    ui->agentsGroupsScheduleTableView->setColumnHidden(0, true);
 }
 
 bool MainWindow::setAgentsModel(QAbstractItemModel * model) {
