@@ -26,7 +26,8 @@ SOURCES += main.cpp \
     hashquery/sqldbhashquery.cpp \
     hashquery/hashqueryfactory.cpp \
     backgroundmedialoader.cpp \
-    syscontrol/commandexecutor.cpp
+    syscontrol/commandexecutor.cpp \
+    movies/omxplayermovieplayer.cpp
 
 HEADERS += \
     imageview.h \
@@ -47,13 +48,15 @@ HEADERS += \
     hashquery/hashqueryfactory.h \
     backgroundmedialoader.h \
     syscontrol/icommandhandler.h \
-    syscontrol/commandexecutor.h
+    syscontrol/commandexecutor.h \
+    movies/omxplayermovieplayer.h
 
 RESOURCES += \
     icons.qrc
 
 
 # QLogger
+INCLUDEPATH += ../../libs
 INCLUDEPATH += ../../libs/qlogger
 QMAKE_LIBDIR += ../../libs/qlogger
 LIBS += -lqlogger
